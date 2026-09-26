@@ -159,11 +159,11 @@ const winReload = (): void => void window.api.post('/dsh/reload')
 <template>
     <header class="titlebar" :class="{ 'titlebar--flush': navVisible }">
         <div class="left">
+            <!-- 品牌区只留 Logo：标题文本已移除（窗口名由系统任务栏 / 标题承担） -->
             <div class="brand">
                 <div class="logo">
                     <img :src="appIcon" class="logo__img" alt="" draggable="false" />
                 </div>
-                <span class="title">{{ $t('app.title') }}</span>
             </div>
 
             <div class="quick">
@@ -236,15 +236,15 @@ const winReload = (): void => void window.api.post('/dsh/reload')
         </div>
 
         <div class="right">
-            <!-- 三个固定站(非动态标签页)：用旧版刷新按钮重载当前固定站 -->
+            <!-- Chrome 式右侧按钮带：条件刷新(固定站) + 设置 + 窗口控制，全高无间隙、关闭钮贴右上角 -->
             <el-tooltip v-if="fixedPageReload" :content="$t('app.reload')" placement="bottom" :show-after="300">
-                <button class="icon-btn" type="button" @click="winReload">
+                <button class="wbtn" type="button" @click="winReload">
                     <el-icon><ReloadOutlined /></el-icon>
                 </button>
             </el-tooltip>
             <el-tooltip :content="$t('app.nav.settings')" placement="bottom" :show-after="300">
                 <button
-                    class="icon-btn"
+                    class="wbtn"
                     :class="{ active: view === 'settings' }"
                     type="button"
                     @click="go('settings')"
@@ -252,7 +252,6 @@ const winReload = (): void => void window.api.post('/dsh/reload')
                     <el-icon><SettingFilled /></el-icon>
                 </button>
             </el-tooltip>
-            <span class="divider" />
             <WindowControls />
         </div>
     </header>
@@ -279,16 +278,17 @@ const winReload = (): void => void window.api.post('/dsh/reload')
 .titlebar {
     -webkit-app-region: drag;
     flex: 0 0 auto;
-    height: var(--titlebar-h, 52px);
+    height: var(--titlebar-h, 44px);
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: space-between;
     gap: 8px;
-    /* 左侧不留内边距，Logo 才能贴住窗口最左边缘 */
-    padding: 0 10px 0 0;
-    /* 下边框改用 inset 阴影画：不占布局高度，52×52 的 Logo 正好顶满标题栏 */
+    /* 左右都不留内边距：Logo 贴窗口左缘，右侧关闭钮贴窗口右上角（Chrome 式） */
+    padding: 0;
+    /* 下边框改用 inset 阴影画：不占布局高度；标签条区会被其底色/激活卡片盖住（连通效果） */
     box-shadow: inset 0 -1px 0 var(--el-border-color-light);
-    background: var(--el-bg-color);
+    /* 整条标题栏钦定浅灰 #f3f3f3（Chrome 观感），固定值不随主题变量 */
+    background: #f3f3f3;
     user-select: none;
 }
 /* 动态标签页显示网址导航栏时，去掉标题栏下边框，使标题栏与网址栏无缝相连 */
@@ -303,61 +303,49 @@ const winReload = (): void => void window.api.post('/dsh/reload')
     min-width: 0;
     overflow: hidden;
 }
-/* 品牌区：Logo + 标题成组，组内紧贴、与右侧快捷站保持间距 */
+/* 品牌区：只剩 Logo（标题文本已移除），贴住窗口最左缘 */
 .brand {
-    flex: 0 1 auto;
-    min-width: 0;
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
-    gap: 4px;
 }
 /* Logo 独立元素：宽高随标题栏高度；图标本体固定 32px 居中 */
 .logo {
     flex: 0 0 auto;
-    width: var(--titlebar-h, 52px);
-    height: var(--titlebar-h, 52px);
+    width: var(--titlebar-h, 44px);
+    height: var(--titlebar-h, 44px);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 .logo__img {
     display: block;
-    width: 32px;
-    height: 32px;
-    /* 图标本身已是圆角白底；这里圆角与之一致（224/1024 × 32 ≈ 7px），避免二次裁切 */
+    width: 30px;
+    height: 30px;
+    /* 图标本身已是圆角白底；这里圆角与之一致（224/1024 × 30 ≈ 7px），避免二次裁切 */
     border-radius: 7px;
     object-fit: contain;
     -webkit-user-drag: none;
 }
-.title {
-    /* 允许收缩并省略：窄窗口下标题不挤占标签条 */
-    flex: 0 1 auto;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-weight: 600;
-    font-size: 15px;
-    white-space: nowrap;
-    color: var(--el-text-color-primary);
-}
 .right {
     flex: 0 0 auto;
     display: flex;
-    align-items: center;
-    gap: 4px;
+    align-items: stretch;
+    gap: 0;
 }
-/* 标题栏里的图标按钮可点不可拖；非按钮区域(分割线/空隙)随容器可拖 */
-.titlebar .icon-btn {
+/* 标题栏里的按钮可点不可拖；非按钮区域(分割线/空隙)随容器可拖 */
+.titlebar .icon-btn,
+.titlebar .wbtn {
     -webkit-app-region: no-drag;
 }
-/* .divider / .icon-btn / .wglyph 已上提到 styles/shared.css（与向导导航栏共用）。 */
+/* .divider / .icon-btn / .wbtn / .wglyph 已上提到 styles/shared.css。 */
 /* 左侧快捷站与标签条之间的分割线：去掉右侧外边距，紧贴标签条 */
 .quick .divider {
     margin-right: 0;
 }
-.icon-btn.active {
+/* 设置按钮的激活态：设置页打开时图标着主色（Chrome 式按钮不带底色激活） */
+.wbtn.active {
     color: var(--el-color-primary);
-    background: var(--el-color-primary-light-9);
 }
 .icon-btn.core-jump {
     width: auto;
@@ -375,28 +363,32 @@ const winReload = (): void => void window.api.post('/dsh/reload')
     gap: 2px;
 }
 .tabs {
-    /* 容器可拖窗口；空白（含标签少时右侧）即可拖动，多标签时原生横向滚动 */
+    /* 容器可拖窗口；空白（含标签少时右侧）即可拖动，多标签时原生横向滚动。
+       Chrome 式：整条标签区通高（stretch 顶满标题栏）、底色透明继承标题栏 #f3f3f3，
+       激活标签以背景色圆顶卡片凸出并盖住标题栏底边框、与下方内容连成一体。 */
     -webkit-app-region: drag;
     flex: 1 1 auto;
+    align-self: stretch;
     min-width: 0;
     display: flex;
-    align-items: center;
-    gap: 5px;
+    align-items: stretch;
+    gap: 0;
+    padding: 0 6px;
     overflow-x: auto;
     scrollbar-width: thin;
+    background: transparent;
 }
 .tab {
     -webkit-app-region: no-drag;
     flex: 0 1 auto;
     min-width: 110px;
     max-width: 230px;
-    height: 32px;
-    padding: 0 6px 0 12px;
+    padding: 0 8px 0 12px;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    border: 1px solid var(--el-border-color);
-    border-radius: 8px;
+    border: none;
+    border-radius: 10px 10px 0 0;
     background: transparent;
     color: var(--el-text-color-secondary);
     font-size: 13px;
@@ -405,12 +397,11 @@ const winReload = (): void => void window.api.post('/dsh/reload')
     user-select: none;
 }
 .tab:hover {
-    background: var(--el-fill-color);
+    background: var(--el-fill-color-dark);
 }
 .tab.on {
     background: var(--el-bg-color);
-    border-color: var(--el-color-primary);
-    color: var(--el-color-primary);
+    color: var(--el-text-color-primary);
 }
 .tab__label {
     overflow: hidden;
@@ -459,8 +450,14 @@ const winReload = (): void => void window.api.post('/dsh/reload')
 .tab--add {
     -webkit-app-region: no-drag;
     flex: 0 0 auto;
+    align-self: center; /* 不随标签通高：居中的小方块按钮 */
     min-width: 0; /* 覆盖 .tab 的 min-width，＋ 按钮不做最小宽度 */
-    padding: 0 8px;
+    width: 28px;
+    height: 28px;
+    margin-left: 4px;
+    justify-content: center;
+    padding: 0;
+    border-radius: 6px;
 }
 /* ---- 拖拽：正在拖的标签、本地插入位置、跨窗可接收遮罩、幽灵标签 ---- */
 .tab {
@@ -478,7 +475,7 @@ const winReload = (): void => void window.api.post('/dsh/reload')
     top: 0;
     left: 0;
     right: 0;
-    height: 56px;
+    height: calc(var(--titlebar-h, 44px) + 4px);
     z-index: 60;
     pointer-events: none;
     /* 跟随「配色方案」的主色（原来写死 Element 蓝，换方案时会突兀地残留蓝色）。

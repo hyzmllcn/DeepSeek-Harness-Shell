@@ -16,9 +16,8 @@
 }
 
 /*
- * 标题栏图标按钮：由 TitleBar 与其内嵌的 WindowControls 共用。
- * 放在共享层而不是组件内：scoped 样式管不到组件外部，而窗口控制按钮必须与标题栏
- * 其它图标按钮长得一模一样。
+ * 标题栏图标按钮（TitleBar 左侧固定站快捷区）：40×40 圆角小按钮。
+ * 窗口控制按钮组已改用 Chrome 同款的 .wbtn（见下），不再共用此样式。
  */
 .icon-btn {
     display: inline-flex;
@@ -35,10 +34,33 @@
     cursor: pointer;
 }
 .icon-btn:hover {
-    background: var(--el-fill-color);
+    /* 标题栏底色是钦定的 #f3f3f3 浅灰，fill-color 与它几乎同色，hover 用深一档才可见 */
+    background: var(--el-fill-color-dark);
     color: var(--el-color-primary);
 }
-.icon-btn.danger:hover {
+
+/*
+ * Chrome 同款窗口按钮：全高、无圆角、整块 hover（TitleBar 右侧按钮组与其内嵌的
+ * WindowControls 共用）。与 .icon-btn 的区别：不吃圆角、hover 只铺底色不变图标色，
+ * 关闭钮悬停整块红底白字 —— 与 Windows / Chrome 原生标题栏一致。
+ */
+.wbtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    align-self: stretch; /* 通高：随容器（标题栏 44px）拉伸 */
+    font-size: 18px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: var(--el-text-color-regular);
+    cursor: pointer;
+}
+.wbtn:hover {
+    background: var(--el-fill-color-dark);
+}
+.wbtn.danger:hover {
     background: var(--el-color-danger);
     color: #fff;
 }
