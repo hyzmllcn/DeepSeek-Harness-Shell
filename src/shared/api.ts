@@ -181,8 +181,8 @@ export interface ApiRoutes {
     'DELETE /config-dir/migration': { result: void }
 
     // ---- 只读状态 ----
-    // 注：原 `GET /webview/info` 已随 webview 功能迁到内置扩展 xeonsky.browser
-    // （走它的扩展自有通道 `ext:xeonsky.browser:config`），内核不再提供。
+    /** 内嵌浏览器的展示信息：默认 UA 与应用版本（设置页展示对照用）。 */
+    'GET /webview/info': { result: { defaultUserAgent: string; appVersion: string } }
     'GET /hotkeys/state': { result: HotkeyState }
     'GET /models/info': { result: ModelsInfo }
     'GET /models/balance': { result: CurrentBalanceInfo | null }
@@ -250,8 +250,8 @@ export interface ApiRoutes {
     /** 交系统默认程序打开一个 URI（协议白名单见 main/app/openlink.ts）。 */
     'POST /shell/open-external': { body: { url: string }; result: void }
     /**
-     * 解析地址栏输入：网址就跳、否则按浏览器扩展配置的默认搜索引擎搜。
-     * 规则整体在扩展 `xeonsky.browser` 里；扩展不可用时一律回落为 external（交系统浏览器）。
+     * 解析地址栏输入：网址就跳、否则按设置的默认搜索引擎搜。
+     * 规则在内核 `app/webview.ts`。
      */
     'POST /shell/resolve-input': { body: { raw: string }; result: ResolveResult }
     /** 解析导航页输入（纯跳转语义，不搜索）。 */

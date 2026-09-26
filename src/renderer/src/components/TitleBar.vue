@@ -144,7 +144,7 @@ function onTabsWheel(e: WheelEvent): void {
     el.scrollLeft += delta
 }
 
-/** ＋ 新建：开一个内置标签页导航（导航页内容由 xeonsky.browser 扩展贡献）。 */
+/** ＋ 新建：开一个内置标签页导航（导航页是内核视图 views/NewTab.vue）。 */
 function onPlus(): void {
     openNewTab()
     go('web')

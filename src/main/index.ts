@@ -95,6 +95,11 @@ if (!gotLock) {
         registerIpc()
         // 各模块的 onReady：注册内核服务、准备需要 Electron 就绪态的能力（建窗之前）。
         await runModuleReady()
+        // 内嵌页面的会话设置（UA / 代理 / 权限策略）由内核直接落地（`app/webview.ts`，
+        // 不依赖扩展层），顺序上只须满足「早于建窗」这条硬约束 —— 晚于建窗的话，
+        // 先建出来的 webview 拿到的还是「未装处理器 = 默认放行一切」的策略。
+        // 必须 await：权限处理器要在建窗之前装好。
+        await initWebviewSession(cfg, log)
         // 扩展层加载：在模块 onReady 之后（此时系统扩展依赖的内核能力已就绪）、建窗之前。
         // 加载器自身的失败已被它内部隔离，这里再包一层只是保证「扩展坏了也不挡启动」。
         try {
@@ -102,12 +107,6 @@ if (!gotLock) {
         } catch (err) {
             log.error({ err }, 'extension layer failed to start (ignored; app continues)')
         }
-        // webview 的会话设置（UA / 代理 / 权限策略）现在由内置扩展 `xeonsky.browser` 落地，
-        // 故必须在 `startLoader()` 之后调用；顺序上仍满足「早于建窗」这条硬约束
-        // —— 晚于建窗的话，先建出来的 webview 拿到的还是「未装处理器 = 默认放行一切」的策略。
-        // 扩展未能激活时（被停用 / 失败），这里降级为不配置会话（内嵌页面用 Electron 默认行为）。
-        // 必须 await：权限处理器要在建窗之前装好。
-        await initWebviewSession(cfg, log)
         createShellWindow() // 首个窗口注册为核心窗口（内部登记角色并设为主窗口）
         createTray()
         syncGlobalHotkey() // 系统全局快捷键（默认 Ctrl+Alt+H 回到主窗口）

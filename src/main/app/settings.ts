@@ -9,6 +9,7 @@ import { PNPM_MANIFEST_REL } from '../dsh/pnpmEntry'
 import writeFileAtomic from 'write-file-atomic'
 import { DEFAULT_SETTINGS, COLOR_SCHEME_IDS, PROXY_SCOPE_IDS, SETTINGS_VERSION } from '@shared/types'
 import type { ConfigDirInfo, ConfigMigrationPlan, ConfigMigrationProgress, Settings, ResolvedLocale, LocaleCode, ColorSchemeId, ProxyScope } from '@shared/types'
+import { normalizeEngine, normalizeShortcuts } from '@shared/browser'
 import { resolveLocale, t as tl } from '@shared/i18n'
 import { broadcast } from '../kernel/runtime'
 import { logger } from '../kernel/logger'
@@ -477,60 +478,43 @@ function withoutNulls(obj: Partial<Settings>): DiskSettings {
 }
 
 /**
- * 设置结构 v5 迁移：把旧的 `webviewUserAgent` / `searchEngine` / `shortcuts` 搬进内置扩展
- * `xeonsky.browser`。
+ * 设置结构 v8 迁移：浏览偏好**收回**内核设置。
  *
- * v4 已开始搬 `webviewUserAgent`（UA 是它的第一项设置）；v5 把「默认搜索引擎」与
- * 「常用站点」也一并搬走 —— 它们本来只服务于新标签页导航，而导航页现已整体成为
- * 该扩展的标签页视图。`newTabMode` / `newTabUrl` **不搬**：新标签页恒为扩展贡献的内置
- * 导航视图，旧的「自定义 URL」语义已不存在，搬过去没有接收方。
+ * v4/v5 曾把 `webviewUserAgent` / `searchEngine` / `shortcuts` 搬进内置扩展
+ * `xeonsky.browser` 的数据目录；第 8 版该扩展整体迁回内核，这三项随之回归设置结构
+ * （改名为 `browserUserAgent` / `browserSearchEngine` / `browserShortcuts`）。
  *
- * 幂等：**逐键**判断「文件里尚无该键」才补写 —— 只要有一项已存在就说明用户在新版里
- * 动过配置，不覆盖；`userAgent` 沿用 v4 的等价语义（旧实现是整文件不存在才写）。
- * 仅当至少一个旧值非空时才尝试落盘。
+ * 两个来源（较新的扩展文件优先 —— v5–v7 期间它是权威存放处）：
+ *  1. 扩展数据文件 `<configDir>/data/extensions/xeonsky.browser/config.json`；
+ *  2. 旧磁盘键 `webviewUserAgent` / `searchEngine` / `shortcuts`（≤v4 的残留）。
  *
- * 容错：任何 IO 失败都只打 warn，不阻断启动（迁移的是一次性偏好，丢失的代价是用户重填一次）。
+ * 幂等：**逐键**判断「磁盘上尚无新键」才补 —— 用户在 v8+ 里改过的值不会被旧数据覆盖。
+ * 文件缺失 / 损坏按空处理（新装用户拿默认值）。返回值只并入本次读取，真正落盘
+ * 由下一次设置保存完成（loadSettings 本身不写盘）。
  */
-function migrateBrowserPrefs(disk: {
-    webviewUserAgent?: unknown
-    searchEngine?: unknown
-    shortcuts?: unknown
-}): void {
-    const legacyUa = typeof disk.webviewUserAgent === 'string' ? disk.webviewUserAgent.trim() : ''
-    const legacyEngine = typeof disk.searchEngine === 'string' ? disk.searchEngine : ''
-    const legacyShortcuts = Array.isArray(disk.shortcuts) ? disk.shortcuts : []
-    if (!legacyUa && !legacyEngine && legacyShortcuts.length === 0) return
+function migrateBrowserPrefsBack(disk: Record<string, unknown>): Partial<Settings> {
+    const out: Partial<Settings> = {}
+    const has = (k: string): boolean => disk[k] !== undefined
+    let ext: Record<string, unknown>
     try {
-        const dir = path.join(configDir(), 'data', 'extensions', 'xeonsky.browser')
-        const file = path.join(dir, 'config.json')
-        let current: Record<string, unknown> = {}
-        if (fs.existsSync(file)) {
-            try {
-                current = JSON.parse(fs.readFileSync(file, 'utf8')) as Record<string, unknown>
-            } catch {
-                current = {}
-            }
-        }
-        let changed = false
-        if (legacyUa && current.userAgent === undefined) {
-            current.userAgent = legacyUa
-            changed = true
-        }
-        if (legacyEngine && current.searchEngine === undefined) {
-            current.searchEngine = legacyEngine
-            changed = true
-        }
-        if (legacyShortcuts.length > 0 && current.shortcuts === undefined) {
-            current.shortcuts = legacyShortcuts
-            changed = true
-        }
-        if (!changed) return
-        fs.mkdirSync(dir, { recursive: true })
-        fs.writeFileSync(file, JSON.stringify(current, null, 4), 'utf8')
-        log.info({ file }, 'migrated legacy browser preferences into xeonsky.browser config')
-    } catch (err) {
-        log.warn({ err }, 'failed to migrate legacy browser preferences (ignored)')
+        const file = path.join(configDir(), 'data', 'extensions', 'xeonsky.browser', 'config.json')
+        ext = JSON.parse(fs.readFileSync(file, 'utf8')) as Record<string, unknown>
+    } catch {
+        ext = {}
     }
+    if (!has('browserUserAgent')) {
+        const v = ext.userAgent ?? disk.webviewUserAgent
+        if (typeof v === 'string') out.browserUserAgent = v
+    }
+    if (!has('browserSearchEngine')) {
+        const v = ext.searchEngine ?? disk.searchEngine
+        if (typeof v === 'string') out.browserSearchEngine = v as Settings['browserSearchEngine']
+    }
+    if (!has('browserShortcuts')) {
+        const v = ext.shortcuts ?? disk.shortcuts
+        if (Array.isArray(v)) out.browserShortcuts = v as Settings['browserShortcuts']
+    }
+    return out
 }
 
 /** 固定标签页隐藏列表：非字符串数组一律回默认（空 = 全部显示）。 */
@@ -554,11 +538,11 @@ export function loadSettings(): Settings {
     // 漏掉一项的后果是「设置页改了、重启又变回去」这种很难复现的漂移。
     // 注意 defu 只认 `undefined`（null 会被当作已设置的值原样保留），
     // 而磁盘上确实可能存着 null（旧版清空过的字段），故显式用 ?? 剔除 null。
-    const merged = defu<DiskSettings, [Settings]>(withoutNulls(disk), DEFAULT_SETTINGS)
-    // v4/v5：`webviewUserAgent`、`searchEngine`、`shortcuts` 迁出设置结构
-    // （webview / 新标签页功能已成内置扩展 xeonsky.browser）。一次性搬进扩展的数据文件，
-    // 之后设置里不再有这三个键。
-    if (legacy) migrateBrowserPrefs(disk as { webviewUserAgent?: unknown; searchEngine?: unknown; shortcuts?: unknown })
+    // v8：浏览偏好从扩展数据文件 / 旧磁盘键一次性搬回（仅真正老配置才迁移）。
+    const diskAll: Partial<Settings> = legacy
+        ? { ...disk, ...migrateBrowserPrefsBack(disk as Record<string, unknown>) }
+        : disk
+    const merged = defu<DiskSettings, [Settings]>(withoutNulls(diskAll), DEFAULT_SETTINGS)
     return {
         ...merged,
         // 以下字段的取值优先级高于磁盘：命令行 / 环境变量 / 归一化
@@ -577,6 +561,9 @@ export function loadSettings(): Settings {
         pnpmSource: normalizePnpmSource(merged.pnpmSource),
         proxyScope: normalizeProxyScope(disk.proxyScope, legacy),
         fixedTabsHidden: normalizeFixedTabsHidden(disk.fixedTabsHidden),
+        browserUserAgent: typeof merged.browserUserAgent === 'string' ? merged.browserUserAgent : '',
+        browserSearchEngine: normalizeEngine(merged.browserSearchEngine),
+        browserShortcuts: normalizeShortcuts(merged.browserShortcuts),
         colorScheme: COLOR_SCHEME_IDS.includes(merged.colorScheme as ColorSchemeId)
             ? merged.colorScheme
             : DEFAULT_SETTINGS.colorScheme

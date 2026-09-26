@@ -121,8 +121,9 @@ export default {
     navPage: {
         placeholder: '輸入網址，或按預設搜尋引擎搜尋',
         go: '跳轉',
-        noBrowserExt: '瀏覽器擴充功能已停用，這是精簡版導覽頁。',
-        addInSettings: '前往擴充功能設定'
+        quick: '常用網站',
+        noShortcuts: '還沒有常用網站。',
+        addInSettings: '去設定新增'
     },
     update: {
         okTitle: '已是最新',
@@ -197,8 +198,7 @@ export default {
             gpuAccelHint: '用 GPU 呈現內嵌頁面。關閉後資源占用更低、對老舊驅動的相容性更好，但捲動與動畫會變卡。',
             gpuAccelText: '圖形加速只能在應用程式啟動時決定，改動需要重啟應用程式才能生效。現在重啟嗎？',
             restartNow: '立即重啟'
-            // 原「瀏覽器識別（UserAgent）」一組已隨 webview 功能遷到內建擴充
-            // xeonsky.browser 的自有文案表（ext.xeonskyBrowser.*），此處不再保留。
+            // 原「瀏覽器識別（UserAgent）」一組已隨 webview 功能遷回核心，現為 sv.general.browser*。
         },
         appearance: {
             title: '外觀',

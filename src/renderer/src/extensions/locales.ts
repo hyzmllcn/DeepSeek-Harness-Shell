@@ -2,7 +2,6 @@ import { deepMergeDict, installExtensionCatalogs, type ExtensionLocaleTable } fr
 import { logger } from '../lib/logger'
 import { mergeLocaleMessages } from '../lib/locales'
 import { extLocales as xeonskyExtmLocales } from '@ext/xeonsky.extm/locales'
-import { extLocales as xeonskyBrowserLocales } from '@ext/xeonsky.browser/locales'
 
 /**
  * 扩展自有文案的**装配点**（「扩展自管语言文件」的外壳一半）。
@@ -11,7 +10,7 @@ import { extLocales as xeonskyBrowserLocales } from '@ext/xeonsky.browser/locale
  *  - 带界面的内置扩展在自己的目录里放一份 `locales.ts`，导出
  *    `extLocales: ExtensionLocaleTable`（zh / en 各一张字典）；
  *  - 键必须挂在 `ext.<稳定名>.*` 命名空间下 —— 命名空间由扩展**自己挑**，
- * 但要唯一且稳定（本仓库的扩展用 id 的驼峰：`ext.xeonskyExtm.*`、`ext.xeonskyBrowser.*`）；
+ * 但要唯一且稳定（本仓库的扩展用 id 的驼峰：`ext.xeonskyExtm.*`）；
  *  - 本表登记「扩展 id → 它的字典」；启动时把全部扩展的字典深合并成一张表，
  *    经 {@link installExtensionCatalogs} 注入 shared 的目录构建器。
  *
@@ -28,8 +27,7 @@ const log = logger('[ext]')
 
 /** 内置扩展的语言文件表：扩展 id → zh/en 字典。新带界面的内置扩展在这里加一行。 */
 const EXT_LOCALES: Record<string, ExtensionLocaleTable> = {
-    'xeonsky.extm': xeonskyExtmLocales,
-    'xeonsky.browser': xeonskyBrowserLocales
+    'xeonsky.extm': xeonskyExtmLocales
 }
 
 /** 取一个扩展字典在 `ext.` 下的顶层命名空间名（用于冲突告警）。 */

@@ -8,10 +8,10 @@ import { operationsSnapshot } from '../kernel/operations'
 import { SERVICE, useService } from '../kernel/services'
 import { getLogHistory } from '../dsh/logbus'
 import { writeRemoteLog } from '../kernel/logger'
-import { readDiskSettings, persistSettings, syncDshTheme, syncNativeTheme, dshLocale, writeDshLocale, normalizeNpmSource } from '../app/settings'
+import { persistSettings, loadSettings, syncDshTheme, syncNativeTheme, dshLocale, writeDshLocale } from '../app/settings'
 import { syncGlobalHotkey } from '../app/ui'
 import { applyAutoLaunch } from '../app/autolaunch'
-import { reapplyWebviewProxy } from '../app/webview'
+import { reapplyWebviewSession } from '../app/webview'
 import { applyAppIcon } from '../app/appicon'
 
 /**
@@ -27,11 +27,9 @@ export default defineModule({
     id: 'settings',
     routes: {
         GET: {
-            '/settings': () => {
-                const merged: Settings = { ...DEFAULT_SETTINGS, ...readDiskSettings() }
-                merged.npmSource = normalizeNpmSource(merged.npmSource)
-                return merged
-            },
+            // 设置走 loadSettings()（defu 合并 + 归一化 + 一次性迁移），
+            // 保证渲染层看到的就是主进程各模块实际生效的那份值。
+            '/settings': () => loadSettings(),
             '/locale': () => resolveLocale(dshLocale(), app.getLocale()),
             '/logs': () => getLogHistory(),
             // 正在进行的操作快照：面板切走再切回来时靠它把进度找回来（见 kernel/operations.ts）。
@@ -48,16 +46,16 @@ export default defineModule({
                 syncGlobalHotkey()
                 // 开机自启同样立刻写系统登录项（幂等）。
                 applyAutoLaunch(merged.autoLaunch)
-                // 代理立刻生效：已加载的内嵌网页要按新代理重新请求（dsh 子进程的代理随下次启动生效）。
-                // UA 不在这里 —— 它已随 webview 功能迁入内置扩展 `xeonsky.browser`，
-                // 由那个扩展自己的设置面板改，改完由扩展侧重新应用。硬件加速改不了（需重启，见 extensions/preready.ts）。
-                await reapplyWebviewProxy()
+                // 代理与 UA 立刻生效：已加载的内嵌网页要按新代理重新请求、新 UA 也要即时应用
+                // （dsh 子进程的代理随下次启动生效）。
+                await reapplyWebviewSession()
                 // 程序图标：换图后立刻更新所有窗口 / 托盘，并把新预览广播给渲染层。
                 applyAppIcon(merged)
-                // 广播给**所有**窗口（含发起保存的那一个）：状态栏的余额授权、内嵌网页的缩放 / 搜索引擎
-                // 这类「从设置派生的状态」都靠这条事件刷新，而 settings.json 的 file watcher 对程序自己
-                // 的写入是刻意静默的（见 app/settings.ts 的 lastSelfSettingsWrite）——不在这里补一条，同窗口内
-                // 的改动就只能等重启才生效。保存方自己会忽略这次回放（见 useSettingsStore 的 lastSaveAt）。
+                // 广播给**所有**窗口（含发起保存的那一个）：状态栏的余额授权、内嵌网页的缩放、
+                // 导航页常用站点这类「从设置派生的状态」都靠这条事件刷新，而 settings.json 的
+                // file watcher 对程序自己的写入是刻意静默的（见 app/settings.ts 的
+                // lastSelfSettingsWrite）——不在这里补一条，同窗口内的改动就只能等重启才生效。
+                // 保存方自己会忽略这次回放（见 useSettingsStore 的 lastSaveAt）。
                 broadcast('settings:changed', merged)
                 return merged
             },
@@ -78,7 +76,7 @@ export default defineModule({
                 syncDshTheme(d.theme)
                 syncNativeTheme(d.theme)
                 applyAutoLaunch(d.autoLaunch)
-                await reapplyWebviewProxy()
+                await reapplyWebviewSession()
                 applyAppIcon(d)
                 broadcast('settings:changed', d)
                 return d

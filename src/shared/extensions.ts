@@ -112,10 +112,10 @@ export interface ExtensionsInfo {
  *  - `extmanage` 扩展层自身的管理（重载单个 / 全部扩展、列扩展）。包装加载器的
  *              `reloadExt` / `reloadAll` / `info`，供扩展生态内部协作（改完代码立刻生效）。
  */
-export type SysCapability = 'fs' | 'net' | 'proc' | 'app' | 'ui' | 'webview' | 'extmanage'
+export type SysCapability = 'fs' | 'net' | 'proc' | 'app' | 'ui' | 'extmanage'
 
 /** 全部系统能力名（加载器与系统扩展共用，避免字符串散落各处）。 */
-export const SYS_CAPABILITIES: readonly SysCapability[] = ['fs', 'net', 'proc', 'app', 'ui', 'webview', 'extmanage']
+export const SYS_CAPABILITIES: readonly SysCapability[] = ['fs', 'net', 'proc', 'app', 'ui', 'extmanage']
 
 /**
  * 扩展可申请的能力名：系统能力，或「某个扩展对外提供的能力」。
@@ -155,9 +155,9 @@ export interface ExtTabContribution {
      * 本地视图实现名 —— **程序内置标签页视图**（关键约束与设置面板的 `view` 完全相同：
      * 只有内置 / 系统扩展能解析，外部扩展填了也会被忽略）。
      *
-     * 用途是让扩展提供一个**不经过 webview** 的标签页界面。目前只有一个落点：
-     * 外壳的「新建标签页」页 —— 它从内建的 Vue 页面改为由扩展贡献
-     * （见 `xeonsky.browser` 的 `newtab`），扩展停用时外壳回落到自带的极简页。
+     * 用途是让扩展提供一个**不经过 webview** 的标签页界面。内核自己的「新建标签页」
+     * 导航页不经此机制（它是内核视图，见 `renderer/src/views/NewTab.vue`）；
+     * 这条通路保留给内置 / 系统扩展贡献的内置页面。
      *
      * 注意带 `view` 的贡献**不会**被当成普通标签页打开（`registerExtTabs` 会跳过），
      * 它只是一个「视图注册声明」，由外壳在需要时按名字挂载。

@@ -4,7 +4,6 @@ import * as sysNet from './system.net/main'
 import * as sysProc from './system.proc/main'
 import * as sysApp from './system.app/main'
 import * as sysUi from './system.ui/main'
-import * as sysWebview from './system.webview/main'
 import * as sysExtmanage from './system.extmanage/main'
 
 /**
@@ -52,15 +51,6 @@ export const systemExtensions: StaticExt[] = [
         sourceDir: 'src/main/extensions/system/system.ui',
         manifest: { id: 'system.ui', name: '界面操作能力', version: '1.0.0', apiVersion: 1 },
         module: sysUi
-    },
-    {
-        // 内嵌页面会话能力：包装 defaultSession 的 UA / 代理 / 权限处理器。
-        // 目前唯一的消费者是内置扩展 xeonsky.browser —— 它把浏览器功能从内核
-        // 迁出后，只能经这条能力触达内核（见 AGENTS.md 红线）。
-        kind: 'system',
-        sourceDir: 'src/main/extensions/system/system.webview',
-        manifest: { id: 'system.webview', name: '内嵌页面会话能力', version: '1.0.0', apiVersion: 1 },
-        module: sysWebview
     },
     {
         // 扩展管理能力：包装加载器的重载 / 列表导出，供扩展生态内部互相协作

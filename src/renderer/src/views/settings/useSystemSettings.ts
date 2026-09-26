@@ -17,9 +17,9 @@ import { useSettingsStore } from './useSettingsStore'
  *  - **图形加速**只能在 `app ready` 之前决定（Electron 限制），改完必须重启：
  *    确认 → 落盘 → `relaunch()`。
  *
- * 原「浏览器标识（UserAgent）」一组已随 webview 功能迁到内置扩展 `xeonsky.browser`
- * 的设置面板 —— 内嵌页面的配置与内嵌页面功能放在一起更内聚，
- * 停用该扩展时这组设置也随之消失（不再在内核设置里留一个可选功能的字段）。
+ * 原「浏览器标识（UserAgent）」一组现已随 webview 功能迁回内核，作为
+ * 「常规 → 内嵌浏览器」折叠块（sv.general.browser*）回到本页 ——
+ * 浏览属内核核心通路，它的配置与程序其它基础行为放在一起。
  */
 export function useSystemSettings() {
     const { state } = useSettingsStore()

@@ -1,4 +1,4 @@
-import type { ColorSchemeId, FunLocale, NpmRegistry, NpmSource, NodeRuntimeKind, PnpmSource, ProxyProtocol, ProxyScope, Settings, Theme } from '@shared/types'
+import type { BrowserShortcut, ColorSchemeId, FunLocale, NpmRegistry, NpmSource, NodeRuntimeKind, PnpmSource, ProxyProtocol, ProxyScope, SearchEngineId, Settings, Theme } from '@shared/types'
 import { DEFAULT_SETTINGS } from '@shared/types'
 
 /** Short, friendly OS label (pure) used by the About header. */
@@ -59,10 +59,12 @@ export interface SettingsState {
     autoLaunch: boolean
     /** 启动时隐藏到托盘并用系统默认浏览器打开 DSH。 */
     openDshInBrowser: boolean
-    // 注：原 `webviewUserAgent` 已随 webview 功能迁到内置扩展 xeonsky.browser
-    // （设置面板 `/settings/browser`，存于扩展数据目录），内核设置结构里不再有它。
-    // 同理，原 `searchEngine` / `newTabMode` / `newTabUrl` / `shortcuts` 随新标签页导航
-    // 一并迁入该扩展（导航页现在是扩展贡献的标签页视图）。
+    /** 内嵌页面自定义 UserAgent（空串 = 按平台/版本生成的默认）。 */
+    browserUserAgent: string
+    /** 地址栏非网址输入使用的默认搜索引擎。 */
+    browserSearchEngine: SearchEngineId
+    /** 新建标签页导航页的常用站点。 */
+    browserShortcuts: BrowserShortcut[]
     /** 配色方案 id（预制方案见 lib/theme.ts）。 */
     colorScheme: ColorSchemeId
     /** 程序图标 id：'' = 内置 Logo；'diy/<文件>' 预制；'user/<文件>' 用户上传。 */
@@ -141,6 +143,12 @@ export function payloadFrom(state: SettingsState): Settings {
         colorScheme: state.colorScheme,
         appIcon: state.appIcon,
         fixedTabsHidden: [...state.fixedTabsHidden],
+        browserUserAgent: state.browserUserAgent,
+        browserSearchEngine: state.browserSearchEngine,
+        // 丢掉全空的占位行，否则会在导航页渲染出无意义的空按钮
+        browserShortcuts: state.browserShortcuts
+            .filter((sc) => sc.title.trim() || sc.url.trim())
+            .map((sc) => ({ ...sc })),
         modelsCredConsent: state.modelsCredConsent
     }
 }

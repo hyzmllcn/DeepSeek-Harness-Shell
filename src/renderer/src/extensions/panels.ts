@@ -67,9 +67,7 @@ const LOCAL_VIEWS: Record<string, () => Promise<Component>> = {
     // 「扩展管理」页（由内置扩展 xeonsky.extm 贡献）。
     // 视图与它的主进程实现在同一个目录（`src/extensions/xeonsky.extm/`），
     // 两端都用 `@ext/<id>/...` 引用 —— 见本文件顶部说明。
-    extensions: () => import('@ext/xeonsky.extm/ExtensionsPanel.vue'),
-    // 「内嵌浏览器」页（由内置扩展 xeonsky.browser 贡献）。
-    browser: () => import('@ext/xeonsky.browser/BrowserPanel.vue')
+    extensions: () => import('@ext/xeonsky.extm/ExtensionsPanel.vue')
 }
 
 /**

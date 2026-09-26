@@ -675,7 +675,7 @@ export async function stopLoader(): Promise<void> {
 //  2. 重载必须在**没有别的扩展持有它的能力**时才有意义。硬依赖它的扩展此刻拿着的
 //     是旧动作表（能力槽按名字查，撤销后立即失效），所以重载一个「被依赖者」时，
 //     依赖方需要一起重载 —— 界面侧用「全部重载」覆盖这种情形，单体重载则用于
-//     无依赖的叶子扩展（如 xeonsky.extm / xeonsky.browser）。
+//     无依赖的叶子扩展（如 xeonsky.extm）。
 
 /** 卸载一个已装载的扩展（不改变 state.entries —— 由调用方随后重填）。 */
 async function unloadOne(item: LoadedExt): Promise<void> {

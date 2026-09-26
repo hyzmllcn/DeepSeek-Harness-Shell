@@ -120,12 +120,13 @@ export default {
         extractingNode: 'Extracting Node…',
         extractingNpm: 'Extracting bundled npm…'
     },
-    /** New-tab page (shell fallback: shown only when `xeonsky.browser` is disabled) */
+    /** New-tab page (kernel view views/NewTab.vue, mounted directly by WebHost for kind === 'newtab') */
     navPage: {
         placeholder: 'Enter a URL, or search with the default engine',
         go: 'Go',
-        noBrowserExt: 'The browser extension is disabled — this is a minimal new-tab page.',
-        addInSettings: 'Open extension settings'
+        quick: 'Quick links',
+        noShortcuts: 'No quick links yet.',
+        addInSettings: 'Add in Settings'
     },
     update: {
         okTitle: 'Up to date',
@@ -185,6 +186,27 @@ export default {
             portHint: 'Picks the first free port starting at 3080.',
             closeKeepRunning: 'Keep background extensions and apps running after closing',
             closeKeepRunningHint: 'When on, the close button only hides the window to the system tray and background work keeps running; when off, closing quits and stops DeepSeek Harness.',
+            browserSection: 'Embedded browser',
+            browserEngine: 'Default search engine',
+            browserEngineHint: 'Used when something typed in the address bar is not a URL.',
+            browserEngineList: {
+                baidu: 'Baidu',
+                sogou: 'Sogou',
+                q360: '360 Search',
+                bing: 'Bing',
+                google: 'Google',
+                duckduckgo: 'DuckDuckGo'
+            },
+            browserShortcuts: 'New-tab quick links',
+            browserShortcutTitle: 'Name',
+            browserShortcutUrl: 'URL',
+            browserShortcutAdd: 'Add link',
+            browserShortcutHint: 'Shown on the new-tab page; a link only appears once both name and URL are filled in.',
+            browserUa: 'UserAgent',
+            browserUaPlaceholder: 'Leave empty to use the default UserAgent',
+            browserUaHint: 'The browser identity reported by embedded pages; takes effect immediately after saving (the main process re-applies the session).',
+            browserUaReset: 'Reset to default',
+            browserUaDefault: 'Default UserAgent:',
             configDirSection: 'Config folder',
             configDir: 'Current config directory',
             configDirChange: 'Change…',
@@ -215,8 +237,8 @@ export default {
             gpuAccelHint: 'Renders the embedded pages on the GPU. Turning it off lowers resource usage and helps with old drivers, at the cost of choppier scrolling and animation.',
             gpuAccelText: 'Graphics acceleration can only be decided while the app starts, so this needs an app restart to take effect. Restart now?',
             restartNow: 'Restart now'
-            // The former "Browser identity (UserAgent)" group moved to the built-in
-            // xeonsky.browser extension's own locale table (ext.xeonskyBrowser.*).
+            // The former "Browser identity (UserAgent)" group is back as sv.general.browser*
+            // now that the webview feature has moved back into the kernel.
         },
         appearance: {
             title: 'Appearance',
@@ -570,9 +592,9 @@ export default {
         continueBtn: 'Continue'
     },
     m: {
-        // Note: the former `webviewPerm` keys (embedded-page permission prompts) moved to the
-        // built-in `xeonsky.browser` extension; its dialog text is built inline in that
-        // extension's main process and never goes through the renderer i18n runtime.
+        // Note: the former `webviewPerm` keys (embedded-page permission prompts) live in the
+        // kernel's `app/webview.ts` now; dialog text is built inline in the main process and
+        // never goes through the renderer i18n runtime.
         dsh: {
             missingMsg: '@deepseek-ai/dsh is not installed (the DeepSeek Box CLI tool)',
             noVersion: 'Could not read the installed @deepseek-ai/dsh version',

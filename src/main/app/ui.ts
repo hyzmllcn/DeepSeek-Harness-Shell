@@ -78,10 +78,7 @@ function hookIconTheme(): void {
     })
 }
 
-/** 从 window.open 的 features 提取宽高（默认用 900x720）。
- *
- *  实现与规则已迁到内置扩展 `xeonsky.browser`（`parsePopupSize`），这里只留门面转发；
- *  扩展不可用时回落内核兜底。见 `app/webview.ts`。 */
+/** 从 window.open 的 features 提取宽高（默认用 900x720）。规则在 `app/webview.ts`。 */
 function parsePopupSize(features: string): { width: number; height: number } {
     return webviewParsePopupSize(features)
 }
@@ -89,15 +86,12 @@ function parsePopupSize(features: string): { width: number; height: number } {
 /**
  * 某 webview 内发生的 target=_blank / window.open 的**执行端**。
  *
- * 「该不该接管、接管成什么」由内置扩展 `xeonsky.browser` 判定（`decideOpenAction`），
- * 这里只执行它给出的动作：
+ * 「该不该接管、接管成什么」由 `app/webview.ts` 判定（`decideOpenAction`），这里只执行
+ * 它给出的动作：
  *  - `popup`    真弹窗（带 frameName/features）→ 独立轻量 BrowserWindow；
  *  - `tab`      普通 target=_blank → 应用内新标签页，且只定向到「发起者所在的那个壳窗口」
  *               （多窗口下不再群发给所有窗口）；owner 缺省（如弹窗内再点普通链接）回退核心窗口；
- *  - `external` 非 http(s)（mailto: 等），**或扩展不可用**（浏览器扩展被停用）→ 系统默认程序/浏览器。
- *
- * 机制（建窗 / 发事件）仍在内核：外壳内容区本身就靠 `<webview>` 渲染，这条通路不能被
- * 可停用的扩展拿掉。但「谁来浏览」这件事在扩展缺席时整体让给系统浏览器 —— 见 `app/webview.ts`。
+ *  - `external` 非 http(s)（mailto: 等）→ 系统默认程序/浏览器。
  */
 function openWebWindow(url: string, frameName: string, features: string, owner?: BrowserWindow | null): void {
     const action = webviewDecideOpenAction(url, frameName, features)

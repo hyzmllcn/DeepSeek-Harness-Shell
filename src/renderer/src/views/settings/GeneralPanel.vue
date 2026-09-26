@@ -2,8 +2,8 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { FolderOutlined, ReloadOutlined, SettingOutlined, RocketOutlined, ThunderboltOutlined, ApiOutlined } from '@antdv-next/icons'
-import type { ConfigDirInfo } from '@shared/types'
+import { CompassOutlined, DeleteOutlined, FolderOutlined, PlusOutlined, ReloadOutlined, SettingOutlined, RocketOutlined, ThunderboltOutlined, ApiOutlined } from '@antdv-next/icons'
+import type { ConfigDirInfo, SearchEngineId } from '@shared/types'
 import TagLabel from '../../components/TagLabel.vue'
 import ProxyFields from '../../components/ProxyFields.vue'
 import { useSettingsStore } from './useSettingsStore'
@@ -18,7 +18,7 @@ import { confirmDialog } from '../../lib/confirm'
  * 那三页的内容同属一件事：**这个程序本身怎么运行**（工作目录、端口、开机自启、
  * 图形加速、镜像源、代理）。拆成三页时用户要改一个"程序行为"得先猜它在哪一页，
  * 而每一页实际上都只有两三组开关 —— 分成三个菜单项带来的导航成本高于内容本身。
- * 合并后一页里按「运行 / 启动 / 性能 / 网络 / 配置目录 / 恢复默认」分组，
+ * 合并后一页里按「运行 / 启动 / 性能 / 网络 / 内嵌浏览器 / 配置目录 / 恢复默认」分组，
  * 折叠面板让长页面依然可扫读。下载并发固定自动（内核按核心数自适应），
  * 下载任务与下载模块自身的配置在「下载」页。
  *
@@ -28,8 +28,9 @@ import { confirmDialog } from '../../lib/confirm'
  *  2. **启动** —— 开机自启、用系统浏览器打开 DSH、关闭后是否驻留后台；
  *  3. **性能** —— 图形加速（改动需重启，故紧邻启动）；
  *  4. **网络** —— npm 镜像源与代理；
- *  5. **配置文件夹** —— 数据落在哪；
- *  6. **恢复默认设置** —— 兜底。
+ *  5. **内嵌浏览器** —— UserAgent / 默认搜索引擎 / 导航页常用站点；
+ *  6. **配置文件夹** —— 数据落在哪；
+ *  7. **恢复默认设置** —— 兜底。
  */
 const { state, actions } = useSettingsStore()
 const { t } = useI18n({ useScope: 'global' })
@@ -41,6 +42,7 @@ const open = ref<string[]>([
     'general-startup',
     'general-performance',
     'general-network',
+    'general-browser',
     'general-configdir',
     'general-reset'
 ])
@@ -55,6 +57,27 @@ const registryOptions = computed(() => [
     { value: 'npmjs', label: t('sv.dsh.registryNpmjs') },
     { value: 'npmmirror', label: t('sv.dsh.registryNpmmirror') }
 ])
+
+/** 搜索引擎下拉（内嵌浏览器块）：ID 顺序即展示顺序。 */
+const engineOptions = computed(() =>
+    (['baidu', 'sogou', '360', 'bing', 'google', 'duckduckgo'] as SearchEngineId[]).map((id) => ({
+        value: id,
+        label: t(`sv.general.browserEngineList.${id === '360' ? 'q360' : id}`)
+    }))
+)
+
+// ---- 内嵌浏览器：默认 UA（设置页展示对照用），改 UA 即时生效（保存时主进程重应用会话） ----
+const defaultUa = ref('')
+
+async function refreshWebviewInfo(): Promise<void> {
+    try {
+        const info = await window.api.get('/webview/info')
+        defaultUa.value = info?.defaultUserAgent ?? ''
+    } catch {
+        /* 读不到就留空 */
+    }
+}
+onMounted(() => void refreshWebviewInfo())
 
 // ---- 配置文件夹：默认 ~/.dsbox/{release,dev}，更改后在下次重启自动迁移 ----
 const cfg = ref<ConfigDirInfo | null>(null)
@@ -213,6 +236,51 @@ async function cancelPendingMigration(): Promise<void> {
                 </a-form>
             </a-collapse-panel>
 
+            <a-collapse-panel key="general-browser">
+                <template #header>
+                    <div class="sec__title"><CompassOutlined /> {{ $t('sv.general.browserSection') }}</div>
+                </template>
+                <a-form layout="vertical">
+                    <a-form-item :label="$t('sv.general.browserEngine')">
+                        <a-select v-model:value="state.browserSearchEngine" :options="engineOptions" class="reg" />
+                        <div class="hint">{{ $t('sv.general.browserEngineHint') }}</div>
+                    </a-form-item>
+                    <a-form-item :label="$t('sv.general.browserShortcuts')">
+                        <div class="sh-list">
+                            <div v-for="(sc, i) in state.browserShortcuts" :key="i" class="sh-row">
+                                <a-input v-model:value="sc.title" class="sh-in" :placeholder="$t('sv.general.browserShortcutTitle')" />
+                                <a-input v-model:value="sc.url" class="sh-in" :placeholder="$t('sv.general.browserShortcutUrl')" />
+                                <a-button :icon="DeleteOutlined" type="text" @click="state.browserShortcuts.splice(i, 1)" />
+                            </div>
+                        </div>
+                        <div>
+                            <a-button :icon="PlusOutlined" @click="state.browserShortcuts.push({ title: '', url: '' })">
+                                {{ $t('sv.general.browserShortcutAdd') }}
+                            </a-button>
+                        </div>
+                        <div class="hint">{{ $t('sv.general.browserShortcutHint') }}</div>
+                    </a-form-item>
+                    <a-form-item :label="$t('sv.general.browserUa')">
+                        <a-textarea
+                            v-model:value="state.browserUserAgent"
+                            :rows="3"
+                            :placeholder="$t('sv.general.browserUaPlaceholder')"
+                            spellcheck="false"
+                        />
+                        <div class="ua-actions">
+                            <a-button :disabled="!state.browserUserAgent" @click="state.browserUserAgent = ''">
+                                {{ $t('sv.general.browserUaReset') }}
+                            </a-button>
+                        </div>
+                        <div class="hint">{{ $t('sv.general.browserUaHint') }}</div>
+                        <div v-if="defaultUa" class="ua-cur">
+                            <div class="ua-cur__t">{{ $t('sv.general.browserUaDefault') }}</div>
+                            <code class="ua-cur__v">{{ defaultUa }}</code>
+                        </div>
+                    </a-form-item>
+                </a-form>
+            </a-collapse-panel>
+
             <a-collapse-panel key="general-configdir">
                 <template #header>
                     <div class="sec__title"><FolderOutlined /> {{ $t('sv.general.configDirSection') }}</div>
@@ -260,5 +328,46 @@ async function cancelPendingMigration(): Promise<void> {
 /* 镜像源下拉占满表单项宽度（a-select 默认按内容宽）。 */
 .reg {
     width: 100%;
+}
+/* 常用站点编辑列表（导航页快捷入口）。 */
+.sh-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    margin-bottom: 8px;
+}
+.sh-row {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+}
+.sh-in {
+    flex: 1 1 auto;
+}
+/* UserAgent 操作行与默认值对照。 */
+.ua-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+.ua-cur {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 6px;
+    background: var(--el-fill-color-light);
+}
+.ua-cur__t {
+    margin-bottom: 4px;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+}
+.ua-cur__v {
+    display: block;
+    font-size: 12px;
+    line-height: 1.6;
+    word-break: break-all;
+    white-space: pre-wrap;
 }
 </style>

@@ -1,3 +1,6 @@
+import type { BrowserShortcut, SearchEngineId } from './browser'
+export type { BrowserShortcut, SearchEngineId } from './browser'
+
 /** Settings persisted in the app's config dir: ~/.dsbox/{release,dev}/settings.json. */
 export interface Settings {
     /**
@@ -111,6 +114,22 @@ export interface Settings {
      */
     fixedTabsHidden: string[]
     /**
+     * 内嵌页面的自定义 UserAgent；**空串 = 用按平台/版本生成的默认 UA**。
+     *
+     * 允许自定义的原因：部分站点按 UA 分流（给「不支持的浏览器」降级甚至拒绝服务），
+     * 用户需要能伪装成别的浏览器版本。改动即时生效（设置保存时重新应用到会话）。
+     */
+    browserUserAgent: string
+    /**
+     * 地址栏输入不是网址时使用的默认搜索引擎。
+     *
+     * 只影响**地址栏**（浏览器的惯例：地址栏既能开网址也能搜）—— 导航页那个输入框
+     * 是纯「跳转」语义，不读这一项（见 `app/webview.ts` 的 resolveTarget）。
+     */
+    browserSearchEngine: SearchEngineId
+    /** 新建标签页导航页上的常用站点。 */
+    browserShortcuts: BrowserShortcut[]
+    /**
    * 「设置 → 模型」是否已获得读取本地凭据文件（`<dshHome>/.credentials.yaml`）的同意。
    * 首次进入该页时由用户确认并置 true；撤回后不再自动读取。
    */
@@ -216,10 +235,13 @@ export type ResolvedLocale = 'zh' | 'en'
  *        本机核心数自适应；「下载」页里下载模块自己的配置 threads 不受影响）。
  *  - 7 = 新增 `fixedTabsHidden`：标题栏固定标签页（内置三站 + 扩展贡献的 fixed 项）
  *        的显示开关，管理界面在「设置 → 外观 → 固定标签页」。
+ *  - 8 = 浏览偏好收回内核：`browserUserAgent` / `browserSearchEngine` / `browserShortcuts`
+ *        随 `xeonsky.browser` 扩展整体迁回内核而回归设置结构（v4/v5 曾把它们搬进扩展数据
+ *        目录）。第 8 版从扩展的 config.json（较新，优先）与旧磁盘键（≤v4 残留）一次性搬回。
  *
  * 每次做「改键名 / 改默认值」的迁移时 +1，见 settings.ts 的 loadSettings。
  */
-export const SETTINGS_VERSION = 7
+export const SETTINGS_VERSION = 8
 
 export const DEFAULT_SETTINGS: Settings = {
     settingsVersion: SETTINGS_VERSION,
@@ -258,6 +280,9 @@ export const DEFAULT_SETTINGS: Settings = {
     colorScheme: 'default',
     appIcon: '',
     fixedTabsHidden: [],
+    browserUserAgent: '',
+    browserSearchEngine: 'bing',
+    browserShortcuts: [],
     modelsCredConsent: false
 }
 
@@ -593,7 +618,7 @@ export function isNewTabTarget(target: string | null | undefined): boolean {
 /**
  * 一行用户输入的解析结果（地址栏 / 导航页输入框）。
  *
- * 规则在浏览器扩展 `xeonsky.browser` 里（它才是「怎么浏览」的归属者），
+ * 规则在内核 `app/webview.ts`（UA / 代理 / 权限策略与输入解析都随浏览功能收归内核），
  * 外壳只负责把原文递过去、按结论行事。放在 shared 是因为它要跨 IPC 传输，
  * 且渲染层两端（`/shell/resolve-input` 的返回、UI 的分派）都要用到这个形状。
  */

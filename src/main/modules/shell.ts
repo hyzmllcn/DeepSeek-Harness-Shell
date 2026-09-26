@@ -1,4 +1,4 @@
-import { dialog, Menu } from 'electron'
+import { dialog, Menu, app } from 'electron'
 import type { BrowserWindow, MenuItemConstructorOptions } from 'electron'
 import { NEWTAB_URL } from '@shared/types'
 import type { ConfirmDialogRequest } from '@shared/types'
@@ -8,7 +8,7 @@ import { isCoreWindow, windowByContentsId, listWindows } from '../app/windowreg'
 import { openStandaloneWindow, focusCoreWindow, takeOpenIntent, createSecondaryShellWindow, globalHotkeyState } from '../app/ui'
 import { confirmDialogContext, openConfirmDialog, replyConfirmDialog } from '../app/confirmDialog'
 import { openExternalSafe } from '../app/openlink'
-import { resolveAddressInput, resolveTarget } from '../app/webview'
+import { resolveAddressInput, resolveTarget, defaultUserAgent } from '../app/webview'
 import { APP_TITLE } from '../app/const'
 
 /**
@@ -41,8 +41,8 @@ export default defineModule({
     routes: {
         GET: {
             '/hotkeys/state': () => globalHotkeyState(),
-            // 注：原 `/webview/info`（默认 UA / 当前 UA）已随 webview 功能迁到内置扩展
-            // `xeonsky.browser`（见它的 `ext:xeonsky.browser:config` 动作），内核不再提供。
+            // 内嵌浏览器的展示信息：默认 UA（设置页「常规 → 内嵌浏览器」展示对照用）。
+            '/webview/info': () => ({ defaultUserAgent: defaultUserAgent(app.getVersion()), appVersion: app.getVersion() }),
             // 本窗口元信息：winId + 是否核心窗口（核心窗口才承载 dsh UI）。
             '/shell/meta': ({ event }) => ({ winId: event.sender.id, isCore: isCoreWindow(event.sender.id) }),
             // 自定义标题栏要按状态切换「最大化 / 还原」。这里给一次当前值；之后的变化由 ui.ts 的窗口事件定向推送。
@@ -60,8 +60,8 @@ export default defineModule({
                 await openExternalSafe(typeof body.url === 'string' ? body.url : '')
             },
             /**
-             * 解析地址栏输入（网址就跳、否则按扩展配置的默认引擎搜）。
-             * 规则整体在浏览器扩展里；扩展不可用时它返回 external（交系统浏览器）。
+             * 解析地址栏输入（网址就跳、否则按设置的默认引擎搜）。
+             * 规则在内核 `app/webview.ts`。
              */
             '/shell/resolve-input': ({ body }) => resolveAddressInput(typeof body.raw === 'string' ? body.raw : ''),
             /** 解析导航页输入（纯跳转语义，不搜索）。 */

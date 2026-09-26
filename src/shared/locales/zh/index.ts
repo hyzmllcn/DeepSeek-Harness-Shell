@@ -122,12 +122,13 @@ export default {
         extractingNode: '正在解压 Node…',
         extractingNpm: '正在解压内置 npm…'
     },
-    /** 新标签导航页（外壳兜底版：`xeonsky.browser` 停用时才显示） */
+    /** 新标签导航页（内核视图 views/NewTab.vue，WebHost 按 kind === 'newtab' 直挂） */
     navPage: {
         placeholder: '输入网址，或按默认搜索引擎搜索',
         go: '跳转',
-        noBrowserExt: '浏览器扩展已停用，这是精简版导航页。',
-        addInSettings: '去扩展设置'
+        quick: '常用站点',
+        noShortcuts: '还没有常用站点。',
+        addInSettings: '去设置添加'
     },
     /** DeepSeek Harness 更新通知 */
     update: {
@@ -191,6 +192,27 @@ export default {
             portHint: '自动从 3080 起挑空闲端口。',
             closeKeepRunning: '关闭程序后继续运行后台扩展和应用',
             closeKeepRunningHint: '开启后点击关闭按钮只隐藏到系统托盘，后台任务继续运行；关闭则直接退出并结束 DeepSeek Harness。',
+            browserSection: '内嵌浏览器',
+            browserEngine: '默认搜索引擎',
+            browserEngineHint: '在地址栏输入非网址内容时使用的搜索引擎。',
+            browserEngineList: {
+                baidu: '百度',
+                sogou: '搜狗',
+                q360: '360 搜索',
+                bing: '必应',
+                google: '谷歌',
+                duckduckgo: 'DuckDuckGo'
+            },
+            browserShortcuts: '导航页常用站点',
+            browserShortcutTitle: '名称',
+            browserShortcutUrl: '网址',
+            browserShortcutAdd: '添加站点',
+            browserShortcutHint: '显示在「新建标签页」导航页；名称与网址都填了才生效。',
+            browserUa: 'UserAgent',
+            browserUaPlaceholder: '留空 = 使用默认 UserAgent',
+            browserUaHint: '内嵌网页上报的浏览器标识；保存后立即生效（主进程会重应用会话）。',
+            browserUaReset: '恢复默认',
+            browserUaDefault: '默认 UserAgent：',
             configDirSection: '配置文件夹',
             configDir: '当前配置目录',
             configDirChange: '更改…',
@@ -221,8 +243,7 @@ export default {
             gpuAccelHint: '用 GPU 渲染内嵌页面。关闭后资源占用更低、对老旧驱动的兼容性更好，但滚动与动画会变卡。',
             gpuAccelText: '图形加速只能在应用启动时决定，改动需要重启应用才能生效。现在重启吗？',
             restartNow: '立即重启'
-            // 原「浏览器标识（UserAgent）」一组已随 webview 功能迁到内置扩展
-            // xeonsky.browser 的自有文案表（ext.xeonskyBrowser.*），此处不再保留。
+            // 原「浏览器标识（UserAgent）」一组已随 webview 功能迁回内核，现为 sv.general.browser*。
         },
         appearance: {
             title: '外观',
@@ -578,8 +599,8 @@ export default {
     },
     /** main 进程文案（dsh/updater/托盘/对话框） */
     m: {
-        // 注：原 `webviewPerm`（内嵌页面权限询问）已随 webview 功能迁到内置扩展
-        // `xeonsky.browser`，其弹窗文案现由该扩展主进程内联构造（不经过渲染层 i18n）。
+        // 注：原 `webviewPerm`（内嵌页面权限询问）随 webview 功能归入内核 `app/webview.ts`，
+        // 其弹窗文案由主进程内联构造（不经过渲染层 i18n）。
         dsh: {
             missingMsg: '未安装 @deepseek-ai/dsh（DeepSeek Box 命令行工具）',
             noVersion: '无法读取已安装的 @deepseek-ai/dsh 版本',
