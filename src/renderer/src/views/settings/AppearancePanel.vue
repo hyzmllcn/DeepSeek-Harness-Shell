@@ -1,17 +1,28 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { BgColorsOutlined, BulbOutlined, DeleteOutlined, PictureOutlined, PlusOutlined } from '@antdv-next/icons'
+import {
+    BgColorsOutlined,
+    BulbOutlined,
+    DeleteOutlined,
+    PictureOutlined,
+    PlusOutlined,
+    PushpinOutlined
+} from '@antdv-next/icons'
 import { tt, applyExtTranslation, applyLocaleChange, currentLocale } from '../../lib/locales'
 import { confirmDialog } from '../../lib/confirm'
 import { COLOR_SCHEMES, isDark, schemeBackgrounds } from '../../lib/theme'
 import { useSettingsStore } from './useSettingsStore'
+import { extState } from '../../extensions/store'
+import { extTabId } from '../../extensions/tabs'
+import { isTabViewContribution } from '../../extensions/tabviews'
+import { FIXED_LABEL_KEY } from '../../shell/tabs'
 import type { AppIconInfo, FunLocale, ResolvedLocale } from '@shared/types'
 
 const { state } = useSettingsStore()
 
 // a-collapse：默认全部展开。用 :active-key + @change（Antdv 未声明 update:activeKey 事件）。
-const open = ref<string[]>(['appearance-main', 'appearance-icon'])
+const open = ref<string[]>(['appearance-main', 'appearance-icon', 'appearance-fixedtabs'])
 
 /** a-collapse 展开项变化。 */
 function onOpenChange(keys: string[]): void {
@@ -90,6 +101,51 @@ async function onSysScale(v: boolean): Promise<void> {
 /** a-switch 的 change 是 (checked, event) 两参签名，包一层只取布尔值。 */
 function onSysScaleChange(checked: boolean): void {
     void onSysScale(checked)
+}
+
+// ---------------------------------------------------------------------------
+// 固定标签页（标题栏左侧常驻项的显示开关）
+// ---------------------------------------------------------------------------
+
+/** 一行固定标签页：id + 展示名（扩展贡献的行附带来源扩展名）。 */
+interface FixedTabRow {
+    id: string
+    label: string
+    extName: string
+}
+
+/**
+ * 固定标签页清单 = 内置三站（home/chat/platform）+ 扩展贡献的 fixed 项。
+ * 与标题栏左侧图标一一对应：这里关掉哪个，标题栏就少哪个图标。
+ */
+const fixedTabRows = computed<FixedTabRow[]>(() => {
+    const rows: FixedTabRow[] = (['home', 'chat', 'platform'] as const).map((k) => ({
+        id: k,
+        label: tt(FIXED_LABEL_KEY[k]),
+        extName: ''
+    }))
+    for (const c of extState.tabs) {
+        if (!c.fixed || isTabViewContribution(c)) continue
+        rows.push({ id: extTabId(c.extId, c.key), label: tt(c.titleKey), extName: c.extName })
+    }
+    return rows
+})
+
+/** 开关当前态：true = 显示（不在隐藏列表里）。 */
+function isFixedOn(id: string): boolean {
+    return !state.fixedTabsHidden.includes(id)
+}
+
+/**
+ * 生成某行的开关回调（写 state.fixedTabsHidden 即触发 store 的防抖自动保存；
+ * 主进程落盘后广播 settings:changed，标题栏的 fixedTabsPref 镜像随即跟随）。
+ */
+function onFixedToggle(id: string): (checked: boolean) => void {
+    return (checked) => {
+        const cur = state.fixedTabsHidden
+        const next = checked ? cur.filter((x) => x !== id) : cur.includes(id) ? [...cur, id] : cur
+        if (next !== cur) state.fixedTabsHidden = next
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -268,6 +324,21 @@ async function removeIcon(it: AppIconInfo): Promise<void> {
                     @change="onIconFile"
                 />
             </a-collapse-panel>
+
+            <a-collapse-panel key="appearance-fixedtabs">
+                <template #header>
+                    <div class="sec__title"><PushpinOutlined /> {{ $t('sv.appearance.fixedTabsTitle') }}</div>
+                </template>
+
+                <div class="hint">{{ $t('sv.appearance.fixedTabsHint') }}</div>
+                <div class="fixedtabs">
+                    <div v-for="row in fixedTabRows" :key="row.id" class="fixedtab">
+                        <span class="fixedtab__label">{{ row.label }}</span>
+                        <span v-if="row.extName" class="fixedtab__ext">{{ row.extName }}</span>
+                        <a-switch :checked="isFixedOn(row.id)" @change="onFixedToggle(row.id)" />
+                    </div>
+                </div>
+            </a-collapse-panel>
         </a-collapse>
     </div>
 </template>
@@ -410,5 +481,36 @@ async function removeIcon(it: AppIconInfo): Promise<void> {
 }
 .icon-file {
     display: none;
+}
+
+/* ---- 固定标签页开关列表 ---- */
+.fixedtabs {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+}
+.fixedtab {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 12px;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 8px;
+    background: var(--el-fill-color-blank);
+}
+.fixedtab__label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    color: var(--el-text-color-regular);
+}
+.fixedtab__ext {
+    flex: 0 0 auto;
+    font-size: 11px;
+    color: var(--el-text-color-secondary);
 }
 </style>

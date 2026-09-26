@@ -69,6 +69,8 @@ export interface SettingsState {
     appIcon: string
     /** 「设置 → 模型」是否已同意读取本地凭据文件。 */
     modelsCredConsent: boolean
+    /** 标题栏固定标签页中被隐藏的 id 列表（空 = 全部显示）。 */
+    fixedTabsHidden: string[]
     /** dsh 是否正在运行（仅 UI，不持久化）。 */
     dshRunning: boolean
     applying: boolean
@@ -138,6 +140,7 @@ export function payloadFrom(state: SettingsState): Settings {
         openDshInBrowser: state.openDshInBrowser,
         colorScheme: state.colorScheme,
         appIcon: state.appIcon,
+        fixedTabsHidden: [...state.fixedTabsHidden],
         modelsCredConsent: state.modelsCredConsent
     }
 }

@@ -257,7 +257,9 @@ export default {
             iconUploadFail: '图标上传失败：请选择 PNG / JPG / WebP 等常见图片格式。',
             iconDelete: '删除自定义图标',
             iconDeleteText: '将删除自定义图标「{name}」，确定继续吗？',
-            iconDeleteFail: '删除图标失败。'
+            iconDeleteFail: '删除图标失败。',
+            fixedTabsTitle: '固定标签页',
+            fixedTabsHint: '标题栏左侧常驻的标签页。关闭开关即从标题栏隐藏；扩展贡献的固定项同样在此管理。'
         },
         network: {
             registry: 'npm 镜像源',

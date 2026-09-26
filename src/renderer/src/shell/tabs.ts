@@ -14,7 +14,14 @@ import { isNewTabTarget } from '@shared/types'
  * 按 id 维护（本模块不持有 webview DOM，避免与 Vue 渲染耦合）。
  */
 
-export type WebTabKind = 'home' | 'chat' | 'platform' | 'dynamic' | 'newtab'
+/**
+ * 标签页种类：
+ *  - home / chat / platform —— 内置三固定站（核心窗口专属，见 setCoreRole）；
+ *  - fixed —— 扩展贡献的固定标签页（`ExtTabContribution.fixed`），同样常驻不可关闭，
+ *    由 `extensions/tabs.ts` 的同步器负责增删；
+ *  - dynamic / newtab —— 用户可开可关的动态页与内置导航页。
+ */
+export type WebTabKind = 'home' | 'chat' | 'platform' | 'fixed' | 'dynamic' | 'newtab'
 
 /** 动态标签页中保活（webview 常驻）的最近数量上限。 */
 export const KEEP_ALIVE_DYNAMIC = 3
@@ -112,9 +119,9 @@ export function toggleKeep(id: string): void {
 /** 需要给 webview 保活的标签页 id：已打开过的固定三站 + 用户“保活”的动态标签页（不计名额）+ 其余最近 N 个动态。 */
 export function keptTabIds(): Set<string> {
     const keep = new Set<string>()
-    // 固定三站只有打开过(visited)才开始保活
+    // 固定标签页（内置三站 + 扩展贡献的 fixed）只有打开过(visited)才开始保活
     for (const t of webTabs.list) {
-        if ((t.kind === 'home' || t.kind === 'chat' || t.kind === 'platform') && t.visited) keep.add(t.id)
+        if (t.pinned && t.visited) keep.add(t.id)
     }
     // 用户固定的动态标签页总是保活、不计入名额
     for (const t of webTabs.list) {
@@ -146,6 +153,42 @@ export function closeTab(id: string): void {
     removeTabById(id)
 }
 
+/**
+ * 插入或更新一个扩展贡献的固定标签页（幂等，由 `extensions/tabs.ts` 的同步器驱动）。
+ * 已存在时只更新标题与 URL，不激活、不动用户的打开状态；id 撞上非固定标签页则忽略
+ * （同步器生成的是 `ext-` 前缀 id，正常不会撞）。
+ */
+export function upsertFixedTab(spec: { id: string; title: string; url: string }): void {
+    const existing = findTab(spec.id)
+    if (existing) {
+        if (existing.kind !== 'fixed') return
+        if (existing.title !== spec.title) existing.title = spec.title
+        if (existing.url !== spec.url) existing.url = spec.url
+        return
+    }
+    webTabs.list.push({
+        id: spec.id,
+        kind: 'fixed',
+        title: spec.title,
+        url: spec.url,
+        pinned: true,
+        keep: false,
+        visited: false, // 与内置三站同语义：打开过才开始保活
+        used: nextOrder()
+    })
+}
+
+/** 撤下一个扩展固定标签页（贡献点消失 / 扩展停用时）；若是激活页则回退相邻标签。 */
+export function removeFixedTab(id: string): void {
+    const i = webTabs.list.findIndex((t) => t.id === id && t.kind === 'fixed')
+    if (i < 0) return
+    webTabs.list.splice(i, 1)
+    if (webTabs.activeId === id) {
+        const next = webTabs.list[Math.min(i, webTabs.list.length - 1)] ?? webTabs.list[0] ?? null
+        webTabs.activeId = next ? next.id : null
+    }
+}
+
 /** 固定三站的规格（id=kind）。核心窗口才显示。 */
 const FIXED_SPECS: Array<{ id: string; kind: WebTabKind; url: string | null; title: string }> = [
     { id: 'home', kind: 'home', url: null, title: '' },
@@ -160,7 +203,9 @@ const FIXED_SPECS: Array<{ id: string; kind: WebTabKind; url: string | null; tit
  */
 export function setCoreRole(isCore: boolean): void {
     const hasKind = (k: WebTabKind): boolean => webTabs.list.some((t) => t.kind === k)
-    const fixedKinds = new Set<WebTabKind>(['home', 'chat', 'platform'])
+    // 扩展贡献的 fixed 页与内置三站同待遇：非核心窗口一并撤下（回到核心时由
+    // extensions/tabs.ts 的同步器按贡献点补回）。
+    const fixedKinds = new Set<WebTabKind>(['home', 'chat', 'platform', 'fixed'])
 
     if (!isCore) {
         for (let i = webTabs.list.length - 1; i >= 0; i--) {

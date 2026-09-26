@@ -533,6 +533,12 @@ function migrateBrowserPrefs(disk: {
     }
 }
 
+/** 固定标签页隐藏列表：非字符串数组一律回默认（空 = 全部显示）。 */
+function normalizeFixedTabsHidden(v: unknown): string[] {
+    if (!Array.isArray(v)) return []
+    return v.filter((x): x is string => typeof x === 'string')
+}
+
 export function loadSettings(): Settings {
     const disk = readDiskSettings()
     // 设置结构版本：缺失即第 1 版。只有真正的老配置才做改键名 / 改默认值的迁移，
@@ -570,6 +576,7 @@ export function loadSettings(): Settings {
         npmSource: normalizeNpmSource(merged.npmSource),
         pnpmSource: normalizePnpmSource(merged.pnpmSource),
         proxyScope: normalizeProxyScope(disk.proxyScope, legacy),
+        fixedTabsHidden: normalizeFixedTabsHidden(disk.fixedTabsHidden),
         colorScheme: COLOR_SCHEME_IDS.includes(merged.colorScheme as ColorSchemeId)
             ? merged.colorScheme
             : DEFAULT_SETTINGS.colorScheme

@@ -51,6 +51,7 @@ export const useSettingsStore = defineStore('settings', () => {
         openDshInBrowser: DEFAULT_SETTINGS.openDshInBrowser,
         colorScheme: DEFAULT_SETTINGS.colorScheme,
         appIcon: DEFAULT_SETTINGS.appIcon,
+        fixedTabsHidden: [],
         modelsCredConsent: DEFAULT_SETTINGS.modelsCredConsent,
         dshRunning: false,
         applying: false,
@@ -101,6 +102,8 @@ export const useSettingsStore = defineStore('settings', () => {
         state.openDshInBrowser = s.openDshInBrowser === true
         state.colorScheme = v.colorScheme
         state.appIcon = v.appIcon
+        // 新数组写回（同 proxyScope 的 defu 数组合并注意点）
+        state.fixedTabsHidden = Array.isArray(v.fixedTabsHidden) ? [...v.fixedTabsHidden] : []
         state.modelsCredConsent = s.modelsCredConsent === true
         if (typeof s.port === 'number' && s.port > 0) {
             state.portMode = 'manual'

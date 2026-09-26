@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import type { Component } from 'vue'
 import {
     DeepSeekFilled,
     MessageFilled,
@@ -12,12 +13,23 @@ import {
     StarFilled
 } from '@antdv-next/icons'
 import { ElMessage } from 'element-plus'
-import { useAppIcon } from '../lib/appIcon'
 import { tt } from '../lib/locales'
 import WindowControls from './WindowControls.vue'
 import { useView, useGoView } from '../shell/viewnav'
-import { webTabs, activeTab, findTab, activateTab, closeTab, openTab, openNewTab, toggleKeep, tabLabel } from '../shell/tabs'
+import {
+    webTabs,
+    activeTab,
+    findTab,
+    activateTab,
+    closeTab,
+    openTab,
+    openNewTab,
+    toggleKeep,
+    tabLabel,
+    FIXED_LABEL_KEY
+} from '../shell/tabs'
 import { shellMeta } from '../shell/state'
+import { initFixedTabsPref, isFixedTabHidden } from '../shell/fixedTabs'
 import { useTabDrag } from '../shell/useTabDrag'
 import { NEWTAB_URL } from '@shared/types'
 
@@ -29,9 +41,11 @@ import { NEWTAB_URL } from '@shared/types'
  * 其余根节点都是 position:fixed，不参与 flex 布局。故无需 props——标签状态来自 tabs.ts 单例，
  * 视图状态来自 viewnav.ts，窗口控制直接走 window.api。
  */
-const appIcon = useAppIcon()
 const view = useView()
 const go = useGoView()
+
+// 固定标签页「显示/隐藏」偏好的渲染层镜像（与设置页外观面板共用；含 settings:changed 订阅）。
+initFixedTabsPref()
 
 // 标签页拖拽：同窗口内拖动=排序；拖到其它窗口（其顶部标签栏亮浅蓝遮罩可接收）=把标签移过去。
 const { bindTabsBar, onTabPointerDown, draggingTabId, slotBeforeId, hoverMask, ghost } = useTabDrag()
@@ -153,34 +167,47 @@ const fixedPageReload = computed(() => {
     return k === 'home' || k === 'chat' || k === 'platform'
 })
 
+/** 内置三固定站的图标（扩展贡献的固定页没有专属图标，用首字符徽标代替）。 */
+const FIXED_ICONS: Record<'home' | 'chat' | 'platform', Component> = {
+    home: DeepSeekFilled,
+    chat: MessageFilled,
+    platform: WalletFilled
+}
+
+/**
+ * 标题栏左侧的固定标签页（内置三站 + 扩展贡献的 fixed 页）：
+ *  - 仅核心窗口显示（副窗口只有「跳核心」按钮）；
+ *  - 按「设置 → 外观 → 固定标签页」的开关过滤隐藏项（fixedTabsPref 镜像是响应式的，
+ *    设置页切换开关后这里即时重算）。
+ */
+const quickTabs = computed(() => {
+    if (!shellMeta.isCore) return []
+    const out: Array<{ id: string; label: string; icon?: Component; badge?: string }> = []
+    for (const kind of ['home', 'chat', 'platform'] as const) {
+        if (isFixedTabHidden(kind) || !findTab(kind)) continue
+        out.push({ id: kind, label: tt(FIXED_LABEL_KEY[kind]), icon: FIXED_ICONS[kind] })
+    }
+    for (const t of webTabs.list) {
+        if (t.kind !== 'fixed' || isFixedTabHidden(t.id)) continue
+        const label = tabLabel(t)
+        out.push({ id: t.id, label, badge: label.trim().charAt(0).toUpperCase() || '?' })
+    }
+    return out
+})
+
 const winReload = (): void => void window.api.post('/dsh/reload')
 </script>
 
 <template>
     <header class="titlebar" :class="{ 'titlebar--flush': navVisible }">
         <div class="left">
-            <!-- 品牌区只留 Logo：标题文本已移除（窗口名由系统任务栏 / 标题承担） -->
-            <div class="brand">
-                <div class="logo">
-                    <img :src="appIcon" class="logo__img" alt="" draggable="false" />
-                </div>
-            </div>
-
+            <!-- 程序图标已移除：左缘直接是固定标签页区（窗口名由系统任务栏 / 标题承担） -->
             <div class="quick">
                 <template v-if="shellMeta.isCore">
-                    <el-tooltip :content="$t('app.nav.ui')" placement="bottom" :show-after="300">
-                        <button class="icon-btn" :class="{ active: isWebActive('home') }" type="button" @click="onTabClick('home', $event)">
-                            <el-icon><DeepSeekFilled /></el-icon>
-                        </button>
-                    </el-tooltip>
-                    <el-tooltip :content="$t('app.nav.chat')" placement="bottom" :show-after="300">
-                        <button class="icon-btn" :class="{ active: isWebActive('chat') }" type="button" @click="onTabClick('chat', $event)">
-                            <el-icon><MessageFilled /></el-icon>
-                        </button>
-                    </el-tooltip>
-                    <el-tooltip :content="$t('app.nav.platform')" placement="bottom" :show-after="300">
-                        <button class="icon-btn" :class="{ active: isWebActive('platform') }" type="button" @click="onTabClick('platform', $event)">
-                            <el-icon><WalletFilled /></el-icon>
+                    <el-tooltip v-for="ft in quickTabs" :key="ft.id" :content="ft.label" placement="bottom" :show-after="300">
+                        <button class="icon-btn" :class="{ active: isWebActive(ft.id) }" type="button" @click="onTabClick(ft.id, $event)">
+                            <el-icon v-if="ft.icon"><component :is="ft.icon" /></el-icon>
+                            <span v-else class="quick__badge">{{ ft.badge }}</span>
                         </button>
                     </el-tooltip>
                 </template>
@@ -303,30 +330,6 @@ const winReload = (): void => void window.api.post('/dsh/reload')
     min-width: 0;
     overflow: hidden;
 }
-/* 品牌区：只剩 Logo（标题文本已移除），贴住窗口最左缘 */
-.brand {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-}
-/* Logo 独立元素：宽高随标题栏高度；图标本体固定 32px 居中 */
-.logo {
-    flex: 0 0 auto;
-    width: var(--titlebar-h, 44px);
-    height: var(--titlebar-h, 44px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.logo__img {
-    display: block;
-    width: 30px;
-    height: 30px;
-    /* 图标本身已是圆角白底；这里圆角与之一致（224/1024 × 30 ≈ 7px），避免二次裁切 */
-    border-radius: 7px;
-    object-fit: contain;
-    -webkit-user-drag: none;
-}
 .right {
     flex: 0 0 auto;
     display: flex;
@@ -356,11 +359,27 @@ const winReload = (): void => void window.api.post('/dsh/reload')
 .core-jump__txt {
     white-space: nowrap;
 }
-/* ---- 固定三站图标按钮区 + 浏览器标签条 ---- */
+/* ---- 固定标签页图标区 + 浏览器标签条 ---- */
 .quick {
     display: flex;
     align-items: center;
     gap: 2px;
+    /* 程序图标已删，留一点左内边距让首个按钮不贴死窗口边缘 */
+    padding-left: 6px;
+}
+/* 扩展贡献的固定页没有专属图标：渲染首字符徽标 */
+.quick__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    background: var(--el-color-primary-light-8);
+    color: var(--el-color-primary);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
 }
 .tabs {
     /* 容器可拖窗口；空白（含标签少时右侧）即可拖动，多标签时原生横向滚动。
@@ -373,7 +392,8 @@ const winReload = (): void => void window.api.post('/dsh/reload')
     display: flex;
     align-items: stretch;
     gap: 0;
-    padding: 0 6px;
+    /* 顶部预留 2px（Chrome 同款：标签不顶到窗口上缘），底部不留——激活卡片要与内容连通 */
+    padding: 2px 6px 0;
     overflow-x: auto;
     scrollbar-width: thin;
     background: transparent;

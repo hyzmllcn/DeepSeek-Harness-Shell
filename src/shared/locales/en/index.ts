@@ -251,7 +251,9 @@ export default {
             iconUploadFail: 'Upload failed: please pick a common image format such as PNG / JPG / WebP.',
             iconDelete: 'Delete custom icon',
             iconDeleteText: 'Delete the custom icon “{name}”?',
-            iconDeleteFail: 'Failed to delete the icon.'
+            iconDeleteFail: 'Failed to delete the icon.',
+            fixedTabsTitle: 'Pinned tabs',
+            fixedTabsHint: 'Tabs pinned to the left edge of the title bar. Toggle off to hide them; entries pinned by extensions are managed here too.'
         },
         network: {
             registry: 'npm registry',

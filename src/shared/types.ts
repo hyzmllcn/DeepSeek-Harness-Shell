@@ -105,6 +105,12 @@ export interface Settings {
    */
     appIcon: string
     /**
+     * 标题栏固定标签页中被隐藏的 id 列表。
+     * 内置三站为 'home' | 'chat' | 'platform'，扩展贡献为 'ext-<extId>-<key>'；
+     * 空数组 = 全部显示。管理界面在「设置 → 外观 → 固定标签页」。
+     */
+    fixedTabsHidden: string[]
+    /**
    * 「设置 → 模型」是否已获得读取本地凭据文件（`<dshHome>/.credentials.yaml`）的同意。
    * 首次进入该页时由用户确认并置 true；撤回后不再自动读取。
    */
@@ -208,10 +214,12 @@ export type ResolvedLocale = 'zh' | 'en'
  *        标签页视图），`newTabMode` / `newTabUrl` 直接删除（新标签页恒为内置导航视图）。
  *  - 6 = `downloadThreads` 字段删除：下载并发固定自动（内核下载模块 resolveThreads 按
  *        本机核心数自适应；「下载」页里下载模块自己的配置 threads 不受影响）。
+ *  - 7 = 新增 `fixedTabsHidden`：标题栏固定标签页（内置三站 + 扩展贡献的 fixed 项）
+ *        的显示开关，管理界面在「设置 → 外观 → 固定标签页」。
  *
  * 每次做「改键名 / 改默认值」的迁移时 +1，见 settings.ts 的 loadSettings。
  */
-export const SETTINGS_VERSION = 6
+export const SETTINGS_VERSION = 7
 
 export const DEFAULT_SETTINGS: Settings = {
     settingsVersion: SETTINGS_VERSION,
@@ -249,6 +257,7 @@ export const DEFAULT_SETTINGS: Settings = {
     openDshInBrowser: false,
     colorScheme: 'default',
     appIcon: '',
+    fixedTabsHidden: [],
     modelsCredConsent: false
 }
 
