@@ -43,6 +43,12 @@ export interface ExtMenuItem {
     view?: string
     /** 图标名（由外壳映射，扩展不能传组件）。 */
     icon?: string
+    /**
+     * 平铺为设置侧栏**一级**项（而非折叠进「扩展」组）。
+     * 供从内置面板整体迁来的界面用（如 xeonsky.harness 的「环境」「DeepSeek」），
+     * 普通扩展勿用 —— 侧栏的「程序自带 / 扩展贡献」分界要靠它维持。
+     */
+    top?: boolean
 }
 
 /** 当前生效的扩展设置面板（供 SettingsView 渲染侧栏与路由）。 */
@@ -53,7 +59,8 @@ export function extMenus(): ExtMenuItem[] {
         extId: p.extId,
         extName: p.extName,
         view: p.view,
-        icon: p.icon
+        icon: p.icon,
+        top: p.top
     }))
 }
 
@@ -67,7 +74,11 @@ const LOCAL_VIEWS: Record<string, () => Promise<Component>> = {
     // 「扩展管理」页（由内置扩展 xeonsky.extm 贡献）。
     // 视图与它的主进程实现在同一个目录（`src/extensions/xeonsky.extm/`），
     // 两端都用 `@ext/<id>/...` 引用 —— 见本文件顶部说明。
-    extensions: () => import('@ext/xeonsky.extm/ExtensionsPanel.vue')
+    extensions: () => import('@ext/xeonsky.extm/ExtensionsPanel.vue'),
+    // 「环境」「DeepSeek」面板（由内置扩展 xeonsky.harness 贡献，top 平铺一级）。
+    // 原内置面板整体迁来，字段仍经 useSettingsStore 读写内核 Settings。
+    harnessEnv: () => import('@ext/xeonsky.harness/panels/EnvPanel.vue'),
+    harnessDsh: () => import('@ext/xeonsky.harness/panels/DshPanel.vue')
 }
 
 /**

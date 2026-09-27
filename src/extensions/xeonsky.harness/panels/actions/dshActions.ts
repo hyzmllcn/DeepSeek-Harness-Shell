@@ -1,6 +1,6 @@
 import { ElMessage } from 'element-plus'
 import { errorMessage } from '@shared/errors'
-import type { SettingsState } from '../settingsStore'
+import type { SettingsState } from '../../../../renderer/src/views/settings/settingsStore'
 
 /**
  * dsh 进程生命周期相关动作（读取版本、查询/启动/停止/重启）。
@@ -9,7 +9,7 @@ import type { SettingsState } from '../settingsStore'
  * 防抖保存、表单填充等**没有共享可变状态**，因此可独立成模块而不需要额外注入。
  */
 
-type DshActions = {
+export type DshActions = {
     loadVersion(): Promise<void>
     refreshRunning(): Promise<void>
     startDsh(): Promise<void>

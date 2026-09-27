@@ -6,27 +6,27 @@ import { ElMessage } from 'element-plus'
 import type { EnvProbe, NodeRuntimeKind, NpmSource } from '@shared/types'
 import { MIN_NODE_MAJOR, isPrerelease, nodeMajor } from '@shared/version'
 import { errorMessage } from '@shared/errors'
-import { useAppIcon } from '../lib/appIcon'
-import { refreshOperations } from '../shell/progressStore'
+import { useAppIcon } from '../../renderer/src/lib/appIcon'
+import { refreshOperations } from '../../renderer/src/shell/progressStore'
 import WizardSteps from './WizardSteps.vue'
 import { useWizardNode } from './wizard/useWizardNode'
 import { useWizardRegistry } from './wizard/useWizardRegistry'
 import { useWizardNpm } from './wizard/useWizardNpm'
 
 /**
- * @deepseek-ai/dsh 包缺失时的安装向导（初始化页的主体）。
- *
- * **顶部不再自带导航栏**：初始化页已是 App 里的独立路由（`/setup`，见 views/SetupView.vue），
- * 与设置页同级叠在 web 宿主之上，顶部与底部就是全局 TitleBar 与 StatusBar。原先那条专属导航栏
- * 只把**步骤条**下移到底部（`.wiz-footbar`），窗口按钮交还标题栏。
+ * @deepseek-ai/dsh 包缺失时的安装向导 —— 现在是 Harness 扩展贡献的**向导标签页**的主体
+ * （`dssh://view/harness-wizard`，薄壳见 WizardTab.vue；dsh 缺失时由 App.vue 自动打开，
+ * 装完自动关闭并回到 dsh UI）。标签页内容区与全局 TitleBar / StatusBar 共存，向导不再
+ * 自备任何导航或窗口按钮；原先那条专属导航栏只把**步骤条**下移到底部（`.wiz-footbar`），
+ * 窗口按钮交还标题栏。
  *
  * **「安装设置」与「安装日志」两个入口已取消**：镜像源 / 配置目录 / 代理本就是设置页里的同一批
  * 设置，dsh 的输出流也一直显示在设置页的「终端」里 —— 统一从标题栏进设置页看与改，向导不再
- * 重复实现一份（也正因为标题栏不再被遮挡，安装前要配代理时直接去设置页即可）。
+ * 重复实现一份（安装前要配代理时直接去设置页即可）。
  *
  * 它自带完整状态（五步流程 / 环境探测 / 版本选择 / 安装进度），与外壳其余部分只通过「装完了」一点
- * 耦合。每次挂载都会重新探测环境并把步骤归零：安装途中切去设置页再回来，界面会从头显示 —— 安装
- * 本身跑在主进程，不受影响。
+ * 耦合。每次挂载都会重新探测环境并把步骤归零：安装途中切去别的标签页再回来，界面会从头显示 ——
+ * 安装本身跑在主进程，不受影响。
  */
 const emit = defineEmits<{ done: [] }>()
 

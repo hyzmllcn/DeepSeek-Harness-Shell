@@ -86,23 +86,19 @@ export interface SettingsState {
     selectedVersion: string
 }
 
-/** Every operation the settings panels can trigger. */
+/**
+ * 外壳自身的设置动作面。
+ *
+ * dsh 相关动作（启停 / 版本 / 更新检查 / 卸载）**不在这里** —— 它们已随「环境」「DeepSeek」
+ * 两个面板一起搬进内置扩展 xeonsky.harness（`panels/actions/`），由扩展自己组装成
+ * 面板可用的动作面（见 `panels/useHarnessActions.ts`）。外壳不反向 import 扩展实现：
+ * 停用该扩展后设置页必须仍然自洽，这个接口也必须仍然完整。
+ */
 export interface SettingsActions {
-    loadVersion(): Promise<void>
     browseWorkspace(): Promise<void>
     browseDshBin(): Promise<void>
     apply(): Promise<void>
     resetAll(): Promise<void>
-    refreshRunning(): Promise<void>
-    startDsh(): Promise<void>
-    stopDsh(): Promise<void>
-    restartDsh(): Promise<void>
-    loadVersions(): Promise<void>
-    versionLabel(v: string): string
-    runUpdateCheck(): Promise<void>
-    runUpdateDsh(): Promise<void>
-    switchVersion(): Promise<void>
-    confirmUninstall(): Promise<void>
     fillFrom(s: Settings): void
 }
 

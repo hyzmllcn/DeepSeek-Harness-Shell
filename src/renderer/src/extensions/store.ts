@@ -18,6 +18,8 @@ import type { ExtSettingsContribution, ExtTabContribution, ExtensionsInfo } from
 export interface RendererTabExt extends ExtTabContribution {
     extId: string
     extName: string
+    /** 来源扩展级别（builtin / system / external）：本地视图解析只认前两种。 */
+    kind: string
 }
 
 /** 一个扩展带来的设置面板贡献。 */
@@ -58,7 +60,7 @@ function rebuild(): void {
         // 只有 active 的扩展贡献才生效 —— 失败 / 停用 / 跳过的扩展不该在外壳上留痕迹。
         if (entry.status !== 'active') continue
         for (const tab of entry.contributions?.tabs ?? []) {
-            tabs.push({ ...tab, extId: entry.id, extName: entry.name })
+            tabs.push({ ...tab, extId: entry.id, extName: entry.name, kind: entry.kind })
         }
         for (const panel of entry.contributions?.settings ?? []) {
             panels.push({ ...panel, extId: entry.id, extName: entry.name })

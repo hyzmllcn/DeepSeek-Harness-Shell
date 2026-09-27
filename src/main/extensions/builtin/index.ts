@@ -1,6 +1,8 @@
 import type { StaticExt } from '../loader/sources'
 import * as xeonskyExtm from '@ext/xeonsky.extm/main'
 import { manifest as xeonskyExtmManifest } from '@ext/xeonsky.extm/manifest'
+import * as xeonskyHarness from '@ext/xeonsky.harness/main'
+import { manifest as xeonskyHarnessManifest } from '@ext/xeonsky.harness/manifest'
 
 /**
  * 内置扩展登记表：源码在本目录，随构建产物发布。
@@ -22,6 +24,16 @@ import { manifest as xeonskyExtmManifest } from '@ext/xeonsky.extm/manifest'
  * 两端都能以 `@ext/<id>/...` 引用，改一个扩展只动一个目录。
  */
 export const builtinExtensions: StaticExt[] = [
+    {
+        // DeepSeek Harness 的界面归属：安装向导标签页（`dssh://view/harness-wizard`，
+        // dsh 缺失时由外壳自动打开）+「环境」「DeepSeek」两个 top 平铺的设置面板。
+        // dsh 的安装 / 启停 / 探测是内核模块（`src/main/dsh/`）—— 本扩展只持有界面，
+        // 停用它只消失界面，dsh 本身照常运行。
+        kind: 'builtin',
+        sourceDir: 'src/extensions/xeonsky.harness',
+        manifest: xeonskyHarnessManifest,
+        module: xeonskyHarness
+    },
     {
         // 扩展管理：设置面板（「扩展管理」页）+ 扩展包清单。
         // 7-Zip 归档核心已下沉为内核模块（`main/zip/`），加载器直接使用它；

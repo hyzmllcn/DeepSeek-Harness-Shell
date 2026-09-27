@@ -2,8 +2,8 @@ import { computed, ref } from 'vue'
 import type { Ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { errorMessage } from '@shared/errors'
-import { formatDownload } from '../../lib/format'
-import { refreshOperations, useOperation } from '../../shell/progressStore'
+import { formatDownload } from '../../../renderer/src/lib/format'
+import { refreshOperations, useOperation } from '../../../renderer/src/shell/progressStore'
 
 /**
  * 向导 · 「程序内置」npm 环境（第 3 步）。

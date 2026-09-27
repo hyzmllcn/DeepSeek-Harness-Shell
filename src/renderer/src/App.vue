@@ -12,6 +12,8 @@ import { AntdvRoot } from './lib/antdv'
 import { useView, useGoView, useToggleTerminal } from './shell/viewnav'
 import { dshMissing, shellMeta } from './shell/state'
 import { webTabs, activeTab, activateTab, openTarget, setCoreRole, tabLabel } from './shell/tabs'
+import { openExtTab } from './extensions/tabs'
+import { extState } from './extensions/store'
 import WebHost from './views/WebHost.vue'
 import type { AppUpdateEvent, ConfigMigrationPlan, ConfigMigrationProgress } from '@shared/types'
 import { STATUSBAR_HEIGHT, TITLEBAR_HEIGHT } from '@shared/chrome'
@@ -138,18 +140,20 @@ async function boot(): Promise<void> {
 }
 
 /**
- * 初始化页的入口：**进入 dsh 页面**（web 视图 + 激活的是 dsh 标签）时，若 dsh 还没装就送过去。
+ * 初始化入口：**dsh 缺失**（未安装 / 未初始化）时自动打开 Harness 扩展的安装向导
+ * 标签页（`xeonsky.harness` 贡献的 `dssh://view/harness-wizard` 本地视图）。
  *
- * 刻意不做成强制：只在「进入」这一刻跳一次，用户随后可以自由离开（切设置、切别的标签都不会被
- * 拉回来）；配置目录迁移进行中也不跳 —— 向导的遮罩 z-index 比迁移层高，跳过去会把迁移进度盖住。
+ * 刻意不做成强制：向导只是一条可关闭的动态标签页，用户随后可以自由离开；配置目录
+ * 迁移进行中也不打开 —— 向导里也有全屏卡片，打开会与迁移进度互相遮挡。
+ *
+ * 依赖 `extState.tabs`（扩展贡献点载入完成）才调得动 `openExtTab`，故把它放进
+ * watch 源：启动早期 dshMissing 已置位而贡献点未到时，载入完成后这一刻会补开。
  */
-watch([view, () => webTabs.activeId, () => activeTab()?.kind, dshMissing, migration], () => {
+watch([dshMissing, migration, () => extState.tabs.map((t) => `${t.extId}/${t.key}`).join(',')], () => {
     if (!shellMeta.isCore) return
     if (migration.value) return
     if (!dshMissing.value) return
-    if (view.value !== 'web') return
-    if (activeTab()?.kind !== 'home') return
-    go('setup')
+    openExtTab('xeonsky.harness', 'wizard')
 })
 
 onMounted(() => {
@@ -178,7 +182,7 @@ onMounted(() => {
     offToggle = window.api.on('ui:toggle-view', onToggle)
     offMissing = window.api.on('dsh:missing', () => {
         dshMissing.value = true
-        void window.api.post('/shell/focus-core') // 同上：确保（可能藏在托盘的）窗口把向导显示出来
+        void window.api.post('/shell/focus-core') // 确保（可能藏在托盘的）窗口把向导显示出来
     })
     offAppUpdate = window.api.on('appupdate:event', onAppUpdateEvent)
     offMigration = window.api.on('configdir:migration', onMigrationProgress)

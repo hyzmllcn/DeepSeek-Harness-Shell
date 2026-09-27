@@ -3,8 +3,8 @@ import type { Ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { EnvProbe } from '@shared/types'
 import { errorMessage } from '@shared/errors'
-import { formatDownload } from '../../lib/format'
-import { refreshOperations, useOperation } from '../../shell/progressStore'
+import { formatDownload } from '../../../renderer/src/lib/format'
+import { refreshOperations, useOperation } from '../../../renderer/src/shell/progressStore'
 
 /**
  * 向导 · Node 环境（第 2 步）。

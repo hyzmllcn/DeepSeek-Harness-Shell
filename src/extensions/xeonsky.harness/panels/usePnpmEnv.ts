@@ -1,66 +1,61 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import type { InstalledVersions, NpmRuntimeStatus, NpmSource, NpmStatus } from '@shared/types'
+import type { InstalledVersions, PnpmRuntimeStatus, PnpmSource, PnpmStatus } from '@shared/types'
 import { withV } from '@shared/version'
 import { errorMessage } from '@shared/errors'
-import { tt } from '../../lib/locales'
-import { confirmDialog } from '../../lib/confirm'
-import { formatDownload } from '../../lib/format'
-import { refreshOperations, useOperation } from '../../shell/progressStore'
+import { tt } from '../../../renderer/src/lib/locales'
+import { confirmDialog } from '../../../renderer/src/lib/confirm'
+import { formatDownload } from '../../../renderer/src/lib/format'
+import { refreshOperations, useOperation } from '../../../renderer/src/shell/progressStore'
 import { useInstallCancel } from './useInstallCancel'
-import type { SettingsState } from './settingsStore'
+import type { SettingsState } from '../../../renderer/src/views/settings/settingsStore'
 
 /**
- * 「环境」页 · npm 来源面板的状态与动作。
+ * 「环境」页 · pnpm 来源面板的状态与动作。
  *
- * 与 usePnpmEnv 同构（三个标签 = 三个来源，其中只有内置来源有「已安装版本」列表），
- * 从 EnvPanel.vue 抽出后与 pnpm 那档并列。
+ * 与 useNpmEnv 同构（两个标签 = 两个来源；pnpm 没有「本地 Node 自带」这一档）。
+ *
+ * 为什么放这里而不是插件页：pnpm 就是「环境」的一部分（来源可选、可下载 / 更新、内置的可切换版本），
+ * 插件页只回答「装哪些插件」，用哪个 pnpm 属于环境配置。
  */
 
 /** 探测未完成时统一显示省略号，而不是「未检测到」。 */
 const PENDING = '…'
 
-export function useNpmEnv(state: SettingsState) {
-    /** npm 标签即选项（与 node 标签同一套 string 收窄写法，理由见 useNodeEnv）。 */
-    const NPM_SOURCES: readonly string[] = ['bundled', 'system', 'localnode']
-    const tab = ref<string>(state.npmSource)
+export function usePnpmEnv(state: SettingsState) {
+    /** pnpm 标签即选项（与 npm 同一套 string 收窄写法）。 */
+    const PNPM_SOURCES: readonly string[] = ['bundled', 'system']
+    const tab = ref<string>(state.pnpmSource)
     watch(tab, (v) => {
-        if (NPM_SOURCES.includes(v)) state.npmSource = v as NpmSource
+        if (PNPM_SOURCES.includes(v)) state.pnpmSource = v as PnpmSource
     })
     watch(
-        () => state.npmSource,
+        () => state.pnpmSource,
         (v) => {
             if (tab.value !== v) tab.value = v
         }
     )
 
-    /**
-     * 三个标签的内容完全同构（当前/最新 + 说明 + 一个按钮），所以用一份数据 + `v-for` 渲染，
-     * 不抄三遍；与 node 那三个手写面板的区别在于 node 的三个来源**本身**就不一样
-     * （程序内置没有可比较项、系统来源要给外链、本地来源才有版本选择器）。
-     */
+    /** 两个标签的内容同构（当前/最新 + 说明 + 按钮），用一份数据 + v-for 渲染。 */
     const TABS = [
-        { key: 'bundled', labelKey: 'sv.env.npmBundled', hintKey: 'sv.env.npmBundledHint' },
-        { key: 'system', labelKey: 'sv.env.npmSystem', hintKey: 'sv.env.npmSystemHint' },
-        { key: 'localnode', labelKey: 'sv.env.npmLocalNode', hintKey: 'sv.env.npmLocalNodeHint' }
+        { key: 'bundled', labelKey: 'sv.env.pnpmBundled', hintKey: 'sv.env.pnpmBundledHint' },
+        { key: 'system', labelKey: 'sv.env.pnpmSystem', hintKey: 'sv.env.pnpmSystemHint' }
     ] as const
 
-    const status = ref<NpmStatus | null>(null)
+    const status = ref<PnpmStatus | null>(null)
     const probed = ref(false)
-    /** 本模块自己发起的 npm 操作在途标记（按钮 loading 用，理由同 useNodeEnv 的 nodeBusy）。 */
+    /** 本模块自己发起的 pnpm 操作在途标记（理由同 useNodeEnv 的 nodeBusy）。 */
     const installing = ref(false)
-    const npmOp = useOperation('npm')
-    const busy = computed(() => installing.value || npmOp.busy.value)
-    const progressPhase = computed(() => npmOp.op.value?.phase ?? 'download')
-    const progressPercent = computed(() => npmOp.op.value?.percent ?? 0)
-    const progressSeen = computed(() => npmOp.op.value !== null)
+    const pnpmOp = useOperation('pnpm')
+    const busy = computed(() => installing.value || pnpmOp.busy.value)
+    const progress = computed(() => pnpmOp.op.value)
     const progressInfo = computed(() =>
-        formatDownload(npmOp.op.value?.total ?? 0, npmOp.op.value?.downloaded ?? 0, npmOp.op.value?.speed ?? 0)
+        formatDownload(pnpmOp.op.value?.total ?? 0, pnpmOp.op.value?.downloaded ?? 0, pnpmOp.op.value?.speed ?? 0)
     )
 
     async function loadStatus(): Promise<void> {
         try {
-            status.value = await window.api.get('/npm/status')
+            status.value = await window.api.get('/pnpm/status')
         } catch {
             status.value = null
         } finally {
@@ -68,7 +63,6 @@ export function useNpmEnv(state: SettingsState) {
         }
     }
 
-    /** 可安装的 npm 版本（来自当前 registry；主进程侧缓存 10 分钟）。 */
     const versions = ref<string[]>([])
     const versionsLoading = ref(false)
     const includePre = ref(false)
@@ -78,7 +72,7 @@ export function useNpmEnv(state: SettingsState) {
         if (versionsLoading.value) return
         versionsLoading.value = true
         try {
-            versions.value = await window.api.get('/npm/versions', { query: { prerelease: includePre.value } })
+            versions.value = await window.api.get('/pnpm/versions', { query: { prerelease: includePre.value } })
             if (selected.value && !versions.value.includes(selected.value)) selected.value = ''
         } catch {
             versions.value = []
@@ -92,26 +86,26 @@ export function useNpmEnv(state: SettingsState) {
     const latestText = computed(() => (probed.value ? withV(status.value?.latest) : PENDING))
     const latestUnknown = computed(() => probed.value && !status.value?.latest)
 
-    /** 当前 npm 标签对应来源的状态。 */
-    const cur = computed<NpmRuntimeStatus | null>(() => status.value?.[state.npmSource] ?? null)
+    /** 当前 pnpm 标签对应来源的状态。 */
+    const cur = computed<PnpmRuntimeStatus | null>(() => status.value?.[state.pnpmSource] ?? null)
 
-    function versionText(src: NpmSource): string {
+    function versionText(src: PnpmSource): string {
         if (!probed.value) return PENDING
         const s = status.value?.[src]
-        if (!s?.present) return tt(src === 'bundled' ? 'sv.env.npmNotDownloaded' : 'sv.env.notDetected')
+        if (!s?.present) return tt(src === 'bundled' ? 'sv.env.pnpmNotDownloaded' : 'sv.env.notDetected')
         return withV(s.version)
     }
 
     /** 该来源是否值得给按钮：还没就绪（未下载 / 未安装）或落后于最新版。 */
-    function needsAction(src: NpmSource): boolean {
+    function needsAction(src: PnpmSource): boolean {
         if (!probed.value) return false
         const s = status.value?.[src]
         return !s?.present || s.outdated === true
     }
 
-    function actionLabel(src: NpmSource): string {
-        if (busy.value) return tt('sv.env.npmWorking')
-        return status.value?.[src]?.present ? tt('sv.env.npmUpdate') : tt('sv.env.npmDownload')
+    function actionLabel(src: PnpmSource): string {
+        if (busy.value) return tt('sv.env.pnpmWorking')
+        return status.value?.[src]?.present ? tt('sv.env.pnpmUpdate') : tt('sv.env.pnpmDownload')
     }
 
     /** 两个版本号是否同一个（一个带 v 前缀一个不带时也要能比出来）。 */
@@ -119,7 +113,7 @@ export function useNpmEnv(state: SettingsState) {
         return !!b && withV(a) === withV(b)
     }
 
-    /** a-select 的选项（项目约定用 :options）；label 内的「（当前）」标注随当前 npm 版本重算。 */
+    /** a-select 的选项（label 内「（当前）」标注随当前版本重算）。 */
     const versionOptions = computed(() =>
         versions.value.map((v) => ({
             value: v,
@@ -133,7 +127,7 @@ export function useNpmEnv(state: SettingsState) {
 
     async function loadInstalled(): Promise<void> {
         try {
-            installed.value = await window.api.get('/versions/:kind', { params: { kind: 'npm' } })
+            installed.value = await window.api.get('/versions/:kind', { params: { kind: 'pnpm' } })
         } catch {
             installed.value = { installed: [], active: null }
         }
@@ -144,7 +138,7 @@ export function useNpmEnv(state: SettingsState) {
         if (switching.value) return
         switching.value = version
         try {
-            const r = await window.api.put('/versions/:kind/active', { params: { kind: 'npm' }, body: { version } })
+            const r = await window.api.put('/versions/:kind/active', { params: { kind: 'pnpm' }, body: { version } })
             if (r.ok) {
                 ElMessage.success(tt('sv.env.versionSwitched', { version: withV(r.version) }))
                 await loadInstalled()
@@ -170,7 +164,7 @@ export function useNpmEnv(state: SettingsState) {
         })
         if (!ok) return // 用户取消
         try {
-            const r = await window.api.delete('/versions/:kind/:version', { params: { kind: 'npm', version } })
+            const r = await window.api.delete('/versions/:kind/:version', { params: { kind: 'pnpm', version } })
             if (r.ok) {
                 await loadInstalled()
                 await loadStatus()
@@ -180,23 +174,22 @@ export function useNpmEnv(state: SettingsState) {
         }
     }
 
-    /** 下载 / 切换 npm 版本：作用于**当前标签**表示的那个来源（三个来源的安装机制见 npmRunner.updateNpm）。 */
+    /** 下载 / 升级 pnpm：作用于**当前标签**表示的那个来源（内置走下载解压，系统走系统 npm 的全局安装）。 */
     async function install(version?: string): Promise<void> {
         if (installing.value) return
-        const source = state.npmSource
+        const source = state.pnpmSource
         installing.value = true
         try {
-            const r = await window.api.post('/npm/update', { body: version ? { source, version } : { source } })
+            const r = await window.api.post('/pnpm/update', { body: version ? { source, version } : { source } })
             // 用户主动取消不算失败，静默返回即可（不弹错误 toast）。
             if (!r.canceled) {
-                if (r.ok) ElMessage.success(tt('sv.env.npmOk', { version: withV(r.version) }))
-                else ElMessage.error(r.message || tt('sv.env.npmFail'))
+                if (r.ok) ElMessage.success(tt('sv.env.pnpmOk', { version: withV(r.version) }))
+                else ElMessage.error(r.message || tt('sv.env.pnpmFail'))
             }
         } catch (err) {
             ElMessage.error(errorMessage(err))
         } finally {
             installing.value = false
-            // 操作已结束：把主进程的快照重新取一次，进度条才会收起来（事件流不含结束信号）。
             await refreshOperations()
             await loadStatus()
             await loadVersions()
@@ -206,16 +199,14 @@ export function useNpmEnv(state: SettingsState) {
 
     const { canceling, cancelInstall } = useInstallCancel()
 
-    // 用 reactive 包一层：嵌套 ref 会被自动解包，模板里写 `npm.tab` 而不是 `npm.tab.value`。
+    // 用 reactive 包一层：嵌套 ref 会被自动解包，模板里写 `pnpm.tab` 而不是 `pnpm.tab.value`。
     return reactive({
         tab,
         TABS,
         status,
         probed,
         busy,
-        progressPhase,
-        progressPercent,
-        progressSeen,
+        progress,
         progressInfo,
         versionsLoading,
         includePre,

@@ -2,9 +2,9 @@
 import { onMounted, ref } from 'vue'
 import { AppstoreOutlined, CodeFilled, DeploymentUnitOutlined, DownloadOutlined, LinkOutlined, ReloadOutlined } from '@antdv-next/icons'
 import { MIN_NODE_MAJOR, withV } from '@shared/version'
-import TagLabel from '../../components/TagLabel.vue'
-import { useSettingsStore } from './useSettingsStore'
-import { refreshOperations } from '../../shell/progressStore'
+import TagLabel from '../../../renderer/src/components/TagLabel.vue'
+import { useHarnessActions } from './useHarnessActions'
+import { refreshOperations } from '../../../renderer/src/shell/progressStore'
 import { useNodeEnv } from './useNodeEnv'
 import { useNpmEnv } from './useNpmEnv'
 import { usePnpmEnv } from './usePnpmEnv'
@@ -20,7 +20,7 @@ import { usePnpmEnv } from './usePnpmEnv'
  * 主进程侧有缓存），所以只在进入本页时调一次。
  */
 
-const { state, actions } = useSettingsStore()
+const { state, actions } = useHarnessActions()
 
 const node = useNodeEnv(state, actions)
 const npm = useNpmEnv(state)

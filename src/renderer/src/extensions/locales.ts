@@ -2,6 +2,7 @@ import { deepMergeDict, installExtensionCatalogs, type ExtensionLocaleTable } fr
 import { logger } from '../lib/logger'
 import { mergeLocaleMessages } from '../lib/locales'
 import { extLocales as xeonskyExtmLocales } from '@ext/xeonsky.extm/locales'
+import { extLocales as xeonskyHarnessLocales } from '@ext/xeonsky.harness/locales'
 
 /**
  * 扩展自有文案的**装配点**（「扩展自管语言文件」的外壳一半）。
@@ -27,7 +28,8 @@ const log = logger('[ext]')
 
 /** 内置扩展的语言文件表：扩展 id → zh/en 字典。新带界面的内置扩展在这里加一行。 */
 const EXT_LOCALES: Record<string, ExtensionLocaleTable> = {
-    'xeonsky.extm': xeonskyExtmLocales
+    'xeonsky.extm': xeonskyExtmLocales,
+    'xeonsky.harness': xeonskyHarnessLocales
 }
 
 /** 取一个扩展字典在 `ext.` 下的顶层命名空间名（用于冲突告警）。 */

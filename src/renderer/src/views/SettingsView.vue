@@ -6,7 +6,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useSettingsStore } from './settings/useSettingsStore'
 import { extMenus } from '../extensions/panels'
 
-type Group = 'general' | 'appearance' | 'env' | 'dsh' | 'log' | 'download' | 'hotkeys' | 'about'
+type Group = 'general' | 'appearance' | 'log' | 'download' | 'hotkeys' | 'about'
 
 const { actions } = useSettingsStore()
 const route = useRoute()
@@ -17,14 +17,14 @@ const router = useRouter()
  *
  * 侧栏刻意收窄到「一个面板一件事」：
  *  - 原「系统与性能」「网络」已并入 `general`（都是程序的常规行为，拆开只是让人多点两次）；
- *  - 原「模型」已并入 `dsh`（令牌与余额本来就属于 DeepSeek 的配置）。
+ *  - 原「模型」已并入 `dsh`（令牌与余额本来就属于 DeepSeek 的配置）；
+ *  - 原「环境」「DeepSeek」两面板已整体迁入内置扩展 `xeonsky.harness`，以 `top: true`
+ *    贡献回来平铺成一级项（见 topExtItems，插在「外观」之后，位置与迁移前一致）。
  * 剩余这些面板彼此不重叠，继续各自成一页。
  */
 const menus: { key: Group; icon: Component }[] = [
     { key: 'general', icon: SettingOutlined },
     { key: 'appearance', icon: BulbOutlined },
-    { key: 'env', icon: DeploymentUnitOutlined },
-    { key: 'dsh', icon: ClusterOutlined },
     { key: 'log', icon: CodeFilled },
     { key: 'download', icon: DownloadOutlined },
     { key: 'hotkeys', icon: ControlOutlined },
@@ -32,15 +32,25 @@ const menus: { key: Group; icon: Component }[] = [
 ]
 
 /**
- * 扩展贡献的设置面板 —— 统一收在「扩展」这个一级菜单之下。
+ * 扩展贡献的设置面板，按贡献声明的 `top` 分两组渲染：
+ *  - `topExtItems` —— **平铺成一级项**（插在「外观」之后）。只给「从内置面板整体迁入
+ *    扩展」的界面用（当前是 xeonsky.harness 的「环境」「DeepSeek」）：它们原是一级菜单，
+ *    侧栏结构不应因这次搬迁而改变；
+ *  - `groupedExtItems` —— 其余扩展面板，统一收在「扩展」一级项之下。
  *
- * 之所以收拢：扩展面板是**可变集合**（扩展可以装卸、可以停用），与上面那排固定的一级菜单
- * 性质不同；平铺在一起时，用户分不清哪一项是程序自带、哪一项来自某个扩展。
- * 现在一级项「扩展」是常量（永远在，即便一个扩展都没装），其下才是随扩展增减的子项。
+ * 之所以把普通扩展面板收拢：它们是**可变集合**（扩展可以装卸、可以停用），与内置那排
+ * 固定一级菜单性质不同；平铺在一起时，用户分不清哪一项是程序自带、哪一项来自某个扩展。
+ * `top` 是内置扩展的迁移特例 —— 那些面板本就是外壳的一部分，只是实现挪了目录。
  *
- * 「扩展管理」页本身也走这条通路（由内置扩展 `xeonsky.extm` 贡献），外壳不为它写特例。
+ * 「扩展管理」页本身走 grouped 通路（由内置扩展 `xeonsky.extm` 贡献），外壳不为它写特例。
  */
 const extItems = computed(() => extMenus())
+
+/** 平铺一级的迁移面板（top: true），声明顺序即侧栏顺序。 */
+const topExtItems = computed(() => extItems.value.filter((m) => m.top))
+
+/** 收进「扩展」组的普通扩展面板。 */
+const groupedExtItems = computed(() => extItems.value.filter((m) => !m.top))
 
 /**
  * 扩展面板的图标：扩展只能给**图标名**（字符串），外壳统一映射成 `<BuildFilled />` ——
@@ -51,6 +61,20 @@ const extItems = computed(() => extMenus())
  * 「这一组都是扩展」这件事表达得更清楚。
  */
 const EXT_ICON: Component = markRaw(BuildFilled)
+
+/**
+ * top 平铺项的图标：按贡献的 `icon` **名**解析（扩展不能传组件，只能报名字）。
+ * 「环境」「DeepSeek」迁自内置面板，沿用迁移前的一级菜单图标；不在表内的名字
+ * 回落到统一扩展图标（{@link EXT_ICON}）。
+ */
+const EXT_TOP_ICONS: Record<string, Component> = {
+    env: DeploymentUnitOutlined,
+    dsh: ClusterOutlined
+}
+
+function topIconOf(name: string | undefined): Component {
+    return (name && EXT_TOP_ICONS[name]) || EXT_ICON
+}
 
 /**
  * 由当前子路由决定高亮分组。
@@ -68,14 +92,14 @@ const activeGroup = computed<string>(() => {
     return typeof n === 'string' && n.startsWith('settings-') ? n.slice(9) : 'general'
 })
 
-/** 「扩展」一级项是否处于展开 / 高亮态（子项任一命中即算）。 */
-const extRootOn = computed(() => extItems.value.some((m) => m.key === activeGroup.value))
+/** 「扩展」一级项是否处于展开 / 高亮态（子项任一命中即算；top 平铺项不算 —— 它们是独立一级项）。 */
+const extRootOn = computed(() => groupedExtItems.value.some((m) => m.key === activeGroup.value))
 
 /** 分组是否收起（默认展开；用户手动折叠后保持）。 */
 const extCollapsed = ref(false)
 
 /** 实际渲染的扩展子项（收起时为空）。 */
-const visibleExtItems = computed(() => (extCollapsed.value ? [] : extItems.value))
+const visibleExtItems = computed(() => (extCollapsed.value ? [] : groupedExtItems.value))
 
 function go(g: string): void {
     void router.push(`/settings/${g}`)
@@ -89,6 +113,8 @@ function toggleExt(): void {
 const loading = ref(false)
 
 // 进入设置时把磁盘设置填进 store（store 的 watch 会随之应用主题/语言）。
+// dsh 的版本探测不在这里：它是「DeepSeek」面板（xeonsky.harness 贡献）自己的事，
+// 由那个面板挂载时加载。
 onMounted(async () => {
     loading.value = true
     try {
@@ -97,8 +123,6 @@ onMounted(async () => {
     } finally {
         loading.value = false
     }
-    await actions.loadVersion()
-    void actions.loadVersions()
 })
 </script>
 
@@ -117,9 +141,25 @@ onMounted(async () => {
                         <el-icon :size="18"><component :is="m.icon" /></el-icon>
                         <span class="nav__label">{{ $t('sv.nav.' + m.key) }}</span>
                     </button>
-                    <!-- 「扩展」一级项紧随「DeepSeek」之后：它承载的也是「可配置的东西」，
-                         而不是外观 / 环境 / 日志这类工具性面板。 -->
-                    <template v-if="m.key === 'dsh'">
+                    <!-- 由内置面板整体迁入扩展的一级面板（top: true，当前是 xeonsky.harness
+                         的「环境」「DeepSeek」）：插在「外观」之后 —— 与迁移前的菜单位置一致，
+                         侧栏结构不因这次搬迁而变。 -->
+                    <template v-if="m.key === 'appearance'">
+                        <button
+                            v-for="m2 in topExtItems"
+                            :key="'ext-top-' + m2.extId + '-' + m2.key"
+                            type="button"
+                            class="nav__item"
+                            :class="{ on: activeGroup === m2.key }"
+                            @click="go(m2.key)"
+                        >
+                            <el-icon :size="18"><component :is="topIconOf(m2.icon)" /></el-icon>
+                            <span class="nav__label">{{ $t(m2.titleKey) }}</span>
+                        </button>
+                    </template>
+                    <!-- 「扩展」一级项紧随「下载」之后（锚点原在 dsh 上，该面板已迁入
+                         harness 扩展并以 top 身份回到上面）：它承载的也是工具性的扩展能力。 -->
+                    <template v-if="m.key === 'download'">
                         <button
                             type="button"
                             class="nav__item nav__item--root"

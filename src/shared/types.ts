@@ -616,6 +616,22 @@ export function isNewTabTarget(target: string | null | undefined): boolean {
 }
 
 /**
+ * 扩展自定义标签页的**本地视图**伪链接前缀：`dssh://view/<视图名>`。
+ *
+ * 扩展贡献点（`ExtTabContribution.url`）填这个形式时，标签页**不进 webview**，
+ * 由外壳按视图名挂载登记的本地组件（`tabviews.ts`，只有内置 / 系统扩展能解析）——
+ * 「扩展自定义标签页界面」的通用通路，第一个使用者是 Harness 安装向导。
+ */
+export const EXT_VIEW_PREFIX = 'dssh://view/'
+
+/** 解析扩展本地视图伪链接；是则返回视图名，否则 null。 */
+export function parseExtViewTarget(url: string | null | undefined): string | null {
+    if (typeof url !== 'string' || !url.startsWith(EXT_VIEW_PREFIX)) return null
+    const name = url.slice(EXT_VIEW_PREFIX.length)
+    return name ? name : null
+}
+
+/**
  * 一行用户输入的解析结果（地址栏 / 导航页输入框）。
  *
  * 规则在内核 `app/webview.ts`（UA / 代理 / 权限策略与输入解析都随浏览功能收归内核），

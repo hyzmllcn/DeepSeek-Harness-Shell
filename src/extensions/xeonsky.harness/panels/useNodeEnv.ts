@@ -3,12 +3,13 @@ import { ElMessage } from 'element-plus'
 import type { InstalledVersions, NodeRuntimeKind, NodeStatus } from '@shared/types'
 import { MIN_NODE_MAJOR, nodeMajor, withV } from '@shared/version'
 import { errorMessage } from '@shared/errors'
-import { tt } from '../../lib/locales'
-import { confirmDialog } from '../../lib/confirm'
-import { formatDownload } from '../../lib/format'
-import { refreshOperations, useOperation } from '../../shell/progressStore'
+import { tt } from '../../../renderer/src/lib/locales'
+import { confirmDialog } from '../../../renderer/src/lib/confirm'
+import { formatDownload } from '../../../renderer/src/lib/format'
+import { refreshOperations, useOperation } from '../../../renderer/src/shell/progressStore'
 import { useInstallCancel } from './useInstallCancel'
-import type { SettingsActions, SettingsState } from './settingsStore'
+import type { SettingsState } from '../../../renderer/src/views/settings/settingsStore'
+import type { HarnessActions } from './useHarnessActions'
 
 /**
  * 「环境」页 · Node 运行时面板的状态与动作。
@@ -20,7 +21,7 @@ import type { SettingsActions, SettingsState } from './settingsStore'
 /** 探测未完成时统一显示省略号，而不是「未检测到」。 */
 const PENDING = '…'
 
-export function useNodeEnv(state: SettingsState, actions: SettingsActions) {
+export function useNodeEnv(state: SettingsState, actions: HarnessActions) {
     /**
      * 标签即设置项。antdv 的 `a-tabs` 用 `v-model:active-key`（activeKey 类型是 string），这里用
      * string 承接，再在 watch 里收窄回 `NodeRuntimeKind`；反向 watch 让外部改动

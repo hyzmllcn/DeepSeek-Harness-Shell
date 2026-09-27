@@ -12,8 +12,8 @@ export const router = createRouter({
     history: createWebHashHistory(),
     routes: [
         { path: '/', name: 'web', component: () => import('../views/WebHost.vue') },
-        // 初始化页（安装向导）：与设置页同级，同样是盖在 web 之上的覆盖层。
-        { path: '/setup', name: 'setup', component: () => import('../views/SetupView.vue') },
+        // 初始化页（安装向导）已不是路由：它并入 Harness 扩展贡献的向导标签页
+        // （`dssh://view/harness-wizard`，dsh 缺失时由 App.vue 自动打开）。
         {
             // 父路由不命名：命名路由配上未命名的空路径子路由会触发 Vue Router 警告，
             // 且按名字导航无法落到空路径子路由。导航统一用 path，由子路由 name 区分。
@@ -23,8 +23,6 @@ export const router = createRouter({
                 { path: '', name: 'settings-root', redirect: { name: 'settings-general' } },
                 { path: 'general', name: 'settings-general', component: () => import('../views/settings/GeneralPanel.vue') },
                 { path: 'appearance', name: 'settings-appearance', component: () => import('../views/settings/AppearancePanel.vue') },
-                { path: 'env', name: 'settings-env', component: () => import('../views/settings/EnvPanel.vue') },
-                { path: 'dsh', name: 'settings-dsh', component: () => import('../views/settings/DshPanel.vue') },
                 { path: 'log', name: 'settings-log', component: () => import('../views/settings/LogPanel.vue') },
                 { path: 'download', name: 'settings-download', component: () => import('../views/settings/DownloadPanel.vue') },
                 { path: 'hotkeys', name: 'settings-hotkeys', component: () => import('../views/settings/HotkeysPanel.vue') },

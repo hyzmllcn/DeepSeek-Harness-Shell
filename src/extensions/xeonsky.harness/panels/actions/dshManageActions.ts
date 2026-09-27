@@ -1,9 +1,9 @@
 import { ElMessage } from 'element-plus'
 import { errorMessage } from '@shared/errors'
-import { tt } from '../../../lib/locales'
-import { confirmDialog } from '../../../lib/confirm'
-import { dshCheck, checkAndNotify } from '../../../lib/update'
-import type { SettingsState } from '../settingsStore'
+import { tt } from '../../../../renderer/src/lib/locales'
+import { confirmDialog } from '../../../../renderer/src/lib/confirm'
+import { dshCheck, checkAndNotify } from '../../../../renderer/src/lib/update'
+import type { SettingsState } from '../../../../renderer/src/views/settings/settingsStore'
 
 /**
  * @deepseek-ai/dsh 包版本管理相关动作：版本列表、更新检查/升级、切换版本、卸载。
@@ -12,7 +12,7 @@ import type { SettingsState } from '../settingsStore'
  * 且都围绕「dsh 会被替换，替换前必须先停 dsh」这一约束展开，内聚度高。
  */
 
-type DshManageActions = {
+export type DshManageActions = {
     loadVersions(): Promise<void>
     versionLabel(v: string): string
     runUpdateCheck(): Promise<void>

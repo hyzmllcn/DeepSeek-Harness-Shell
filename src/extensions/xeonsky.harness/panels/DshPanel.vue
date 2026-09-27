@@ -1,19 +1,18 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
 import { ClusterOutlined, FolderOutlined, SendOutlined, ReloadOutlined, SafetyCertificateFilled } from '@antdv-next/icons'
 import { ElMessage } from 'element-plus'
 import type { InstalledVersions, ModelBalanceInfo, ModelsInfo } from '@shared/types'
 import { errorMessage } from '@shared/errors'
 import { withV } from '@shared/version'
-import { dshCheck } from '../../lib/update'
-import { tt } from '../../lib/locales'
-import { confirmDialog } from '../../lib/confirm'
-import { SETUP_PATH } from '../../shell/viewnav'
-import TagLabel from '../../components/TagLabel.vue'
-import { useSettingsStore } from './useSettingsStore'
+import { dshCheck } from '../../../renderer/src/lib/update'
+import { tt } from '../../../renderer/src/lib/locales'
+import { confirmDialog } from '../../../renderer/src/lib/confirm'
+import TagLabel from '../../../renderer/src/components/TagLabel.vue'
+import { openExtTab } from '../../../renderer/src/extensions/tabs'
 import { useInstallCancel } from './useInstallCancel'
+import { useHarnessActions } from './useHarnessActions'
 
 /**
  * 「DeepSeek」页 —— DeepSeek Harness 的来源、启停、更新，以及令牌与余额。
@@ -31,9 +30,8 @@ import { useInstallCancel } from './useInstallCancel'
  * 页头写的是 **DeepSeek Box**（本程序），不是菜单名「DeepSeek」（本页主题）——
  * 这一页本质上是在讲"本程序托管的那个 DeepSeek Harness"，所以顶部先亮出程序身份与版本。
  */
-const { state, actions } = useSettingsStore()
+const { state, actions } = useHarnessActions()
 const { t } = useI18n({ useScope: 'global' })
-const router = useRouter()
 
 /** 折叠面板展开项。用 `:active-key` + `@change` 而非 `v-model:active-key`：后者的更新事件未在组件类型里声明。 */
 const open = ref<string[]>(['dsh-startup', 'dsh-update', 'dsh-models'])
@@ -104,9 +102,9 @@ async function loadModels(): Promise<void> {
     }
 }
 
-/** dsh 尚未安装（主进程报 dsh-missing）：送去初始化页完成安装。 */
+/** dsh 尚未安装（主进程报 dsh-missing）：打开 Harness 扩展的安装向导标签页。 */
 function goSetup(): void {
-    void router.push(SETUP_PATH)
+    openExtTab('xeonsky.harness', 'wizard')
 }
 
 /** 同意读取：置位持久化开关并立刻读取。 */
@@ -216,8 +214,14 @@ async function removeInstalled(version: string): Promise<void> {
     }
 }
 
+// 预发布开关 / npm 镜像源变化 → 重建版本列表。原在设置 store 内（服务整页），随 dsh 动作
+// 一并迁到本面板：只有这个面板的版本下拉用得到，且面板每次挂载都会重新拉一次。
+watch([() => state.autoCheckPrerelease, () => state.npmRegistry], () => void actions.loadVersions())
+
 onMounted(() => {
     void actions.refreshRunning()
+    void actions.loadVersion()
+    void actions.loadVersions()
     void loadInstalled()
     if (state.modelsCredConsent) void loadModels()
 })
