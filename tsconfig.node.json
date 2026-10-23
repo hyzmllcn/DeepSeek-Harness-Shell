@@ -14,11 +14,9 @@
         "forceConsistentCasingInFileNames": true,
         "resolveJsonModule": true,
         "outDir": "out/ts-node",
-        "baseUrl": ".",
         "paths": {
             "@shared/*": ["./src/shared/*"],
             "@main/*": ["./src/main/*"],
-            "@ext/*": ["./src/extensions/*"],
             "@/*": ["./src/renderer/src/*"]
         }
     },
@@ -26,9 +24,6 @@
         "electron.vite.config.ts",
         "src/main/**/*",
         "src/preload/**/*",
-        "src/shared/**/*",
-        "src/extensions/*/main.ts",
-        "src/extensions/*/manifest.ts",
-        "src/extensions/*/**/*.json"
+        "src/shared/**/*"
     ]
 }
