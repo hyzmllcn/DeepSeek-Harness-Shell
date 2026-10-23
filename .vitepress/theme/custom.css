@@ -35,7 +35,26 @@
     --dsb-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
-/* ---------- 2. 正文排版 ---------- */
+/* ---------- 2. 顶部维护状态横幅 ---------- */
+.dsb-maintenance-banner {
+    padding: 8px 16px;
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: center;
+    color: #7a4b00;
+    background: #fff8e1;
+    border-bottom: 1px solid #f2d38b;
+}
+.dsb-maintenance-banner strong {
+    font-weight: 600;
+}
+.dark .dsb-maintenance-banner {
+    color: #f0c674;
+    background: #2a1f0e;
+    border-bottom-color: #4a3818;
+}
+
+/* ---------- 3. 正文排版 ---------- */
 .vp-doc h2 {
     margin-top: 44px;
     padding-top: 24px;

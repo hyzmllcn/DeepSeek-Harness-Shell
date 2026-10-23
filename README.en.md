@@ -15,6 +15,9 @@
 
 </div>
 
+> [!IMPORTANT]
+> **This project is no longer actively maintained.** DeepSeek has released its official desktop app, so please use the official version instead. The existing code and releases remain available, but future dsh updates are no longer guaranteed to be followed.
+
 ![DeepSeek Box main window](docs/public/home-page.png)
 
 > That is what it looks like once open: browser-style tabs on top, workspaces and sessions on the left, and a chat area in the middle.
@@ -84,7 +87,7 @@ Downloads and extraction can be cancelled at any time. To install another versio
 
 - **One-click run**: locate / install / start / stop / restart dsh automatically; the window and the process live and die together, with no leftover background process.
 - **Versioned installs and switching**: Node, npm and dsh are stored per version and can coexist, be switched or removed; if you pick the wrong one you can roll back, from **Settings → Environment / DeepSeek Harness**.
-- **Self-contained environment**: optional bundled Node and npm, so the app runs even if nothing is installed system-wide; it can also detect an existing system Node (requires ≥ 20).
+- **Self-contained environment**: optional bundled Node and npm, so the app runs even if nothing is installed system-wide; it can also detect an existing system Node (requires 22.19+ or 24+, excluding 23).
 - **Multi-threaded downloads**: live speed and size, no duplicate downloads of the same file, and cancellable download and extraction.
 - **Browser-style tabs and multiple windows**: the three pinned sites (dsh Web UI / web chat / usage and top-up) stay in the title bar as icon buttons; new links become dynamic tabs you can star and drag to reorder, or open in a new window.
 - **Models and balances**: **Settings → Models** lists models and balances per provider (the first visit asks for consent to read local credentials; no key is ever shown). The current balance also stays in the status bar, refreshing every 5 minutes in the foreground, and you can click it to refresh.
@@ -155,7 +158,7 @@ More answers are in the [FAQ](docs/en/user/faq.md) ([简体中文](docs/zh/user/
 
 ## Run from source
 
-For people who want to change the code. Requires Node ≥ 20:
+For people who want to change the code. Requires Node 22.19+ (or 24+, excluding 23):
 
 ```bash
 git clone https://github.com/XEonSKY/DeepSeek-Box.git
