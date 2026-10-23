@@ -7,15 +7,15 @@
 | 路径 | 说明 |
 |---|---|
 | `App.vue` | 根组件：标题栏、webview 容器、设置覆盖层、状态栏、全局提示与迁移进度框 |
-| `views/WebHost.vue` | dsh Web UI / 网页宿主 |
-| `views/SetupView.vue` | 初始化页（安装向导；`/setup` 路由，与设置页同级） |
-| `views/NewTabFallback.vue` | 新建标签页**兜底页**（扩展 `xeonsky.browser` 停用时才渲染；正常由扩展的 `NewTab.vue` 贡献） |
+| `views/WebHost.vue` | dsh Web UI / 网页宿主；安装向导标签页直接挂载 `harness/WizardTab.vue` |
+| `views/harness/` | 安装向导（`DshWizard.vue` / `WizardTab.vue` / `WizardSteps.vue` / `wizard/`）与「环境」「DeepSeek」面板（`panels/`） |
+| `views/NewTab.vue` | 新建标签页导航页（内核视图，不是 webview） |
 | `views/LogView.vue` | 终端（`@xterm/xterm`） |
-| `views/settings/*.vue` | 设置面板：General / Appearance / Network / Env / Dsh / Models / Log / Hotkeys / About。**pnpm 的来源与版本在「环境」页**（与 npm 同构：折叠卡片 + 标签即来源）。原先的「插件」页已随 dsh 插件管理体系一并移除；「Webview」页已随 webview 功能迁出：浏览器标识（UA）现由内置扩展 `xeonsky.browser` 用自己的设置面板承载（`src/extensions/xeonsky.browser/BrowserPanel.vue`，经 `renderer/src/extensions/panels.ts` 登记） |
-| `views/settings/actions/` | `dshActions.ts`（启停 / 向导）、`dshManageActions.ts`（版本管理） |
+| `views/settings/*.vue` | 外壳设置面板：General / Appearance / Log / Download / Hotkeys / About；「环境」「DeepSeek」在 `views/harness/panels/`，路由 `settings-env` / `settings-dsh`。**pnpm 的来源与版本在「环境」页**（与 npm 同构：折叠卡片 + 标签即来源） |
+| `views/harness/panels/actions/` | `dshActions.ts`（启停 / 向导）、`dshManageActions.ts`（版本管理） |
 | `views/settings/useSettingsStore.ts`、`settingsStore.ts` | Pinia 设置镜像与写回 |
-| `views/settings/use{Node,Npm,Pnpm}Env.ts` | 「环境」页三档各自的**状态与动作**（`useNodeEnv` / `useNpmEnv` / `usePnpmEnv`）；`EnvPanel.vue` 只剩模板与一次加载编排 |
-| `views/settings/useInstallCancel.ts` | 「取消当前在途安装」的共享实现（dsh / node / npm / pnpm 共用） |
+| `views/harness/panels/use{Node,Npm,Pnpm}Env.ts` | 「环境」页三档各自的**状态与动作**（`useNodeEnv` / `useNpmEnv` / `usePnpmEnv`）；`EnvPanel.vue` 只剩模板与一次加载编排 |
+| `views/harness/panels/useInstallCancel.ts` | 「取消当前在途安装」的共享实现（dsh / node / npm / pnpm 共用） |
 | `components/` | `DshWizard.vue`（安装向导）、`WizardSteps.vue`（自绘步骤条）、`StatusBar.vue`、`TitleBar.vue`、`WindowControls.vue`、`ProxyFields.vue` |
 | `components/wizard/` | 向导的三块自持逻辑：`useWizardRegistry.ts`（镜像源测速）、`useWizardNpm.ts`（内置 npm 准备）、`useWizardNode.ts`（本地 Node 版本与部署） |
 | `lib/` | 主题、格式化、更新状态、locale、图标等工具 |
@@ -155,9 +155,9 @@ async function bootstrap() {
 
 标签创建、保活、拖动迁移在 `shell/tabs.ts` 等；核心 / 副窗口角色由主进程 `windowreg.ts` 与渲染层共同决定。跨窗口拖标签用 `/tab-drag` 系列端点，屏幕坐标决定落点。
 
-**新建标签页（`kind === 'newtab'`）是「程序内置标签页视图」，不是 webview**：内容由扩展贡献（`ExtTabContribution.view`），渲染层 `extensions/tabviews.ts` 的 `LOCAL_TAB_VIEWS` 按名字解析本地组件（**只有 builtin / system** 能解析），`WebHost.vue` 用 `defineAsyncComponent(newTabViewLoader())` 挂载；取不到就回落 `views/NewTabFallback.vue`。带 `view` 的贡献**不会**被 `registerExtTabs` 打开成标签页（`isTabViewContribution` 跳过）。
+**新建标签页（`kind === 'newtab'`）是内核视图，不是 webview**：`views/NewTab.vue`，`WebHost.vue` 按 `kind` 直挂。
 
-**扩展视图与外壳标签模型交互的唯一通道是 `renderer-api.ts` 的 `extShell`**（`openTab` / `activateFixed` / `goSettings`）—— 扩展不能 import `@/shell/*`。需要新交互**先扩 `extShell`**，不要在扩展里绕主进程发端点（标签模型是渲染层单例）。
+**安装向导是内核标签页**：`shell/tabs.ts` 的 `openWizardTab()` 以固定 id `wizard` 打开 `dssh://view/harness-wizard`；`WebHost.vue` 检测到该 URL 时直接挂 `harness/WizardTab.vue`，`useWebviews.ts` 不建 webview，导航栏也不显示。安装完成后向导自己关标签并切回 home。
 
 ## 新增一个设置面板
 

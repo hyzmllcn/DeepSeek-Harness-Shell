@@ -11,9 +11,7 @@ export default defineConfig({
         build: { externalizeDeps: true },
         resolve: {
             alias: {
-                '@shared': resolve('src/shared'),
-                // 内置扩展业务代码在顶层 src/extensions/<id>/（详见该目录说明）
-                '@ext': resolve('src/extensions')
+                '@shared': resolve('src/shared')
             }
         }
     },
@@ -21,8 +19,7 @@ export default defineConfig({
         build: { externalizeDeps: true },
         resolve: {
             alias: {
-                '@shared': resolve('src/shared'),
-                '@ext': resolve('src/extensions')
+                '@shared': resolve('src/shared')
             }
         }
     },
@@ -30,8 +27,7 @@ export default defineConfig({
         resolve: {
             alias: {
                 '@': resolve('src/renderer/src'),
-                '@shared': resolve('src/shared'),
-                '@ext': resolve('src/extensions')
+                '@shared': resolve('src/shared')
             }
         },
         plugins: [

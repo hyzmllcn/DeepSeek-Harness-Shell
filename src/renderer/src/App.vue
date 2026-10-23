@@ -11,9 +11,7 @@ import { applyExtTranslation, applyLocaleChange, currentLocale, tt } from './lib
 import { AntdvRoot } from './lib/antdv'
 import { useView, useGoView, useToggleTerminal } from './shell/viewnav'
 import { dshMissing, shellMeta } from './shell/state'
-import { webTabs, activeTab, activateTab, openTarget, setCoreRole, tabLabel } from './shell/tabs'
-import { openExtTab } from './extensions/tabs'
-import { extState } from './extensions/store'
+import { webTabs, activeTab, activateTab, openTarget, setCoreRole, tabLabel, openWizardTab } from './shell/tabs'
 import WebHost from './views/WebHost.vue'
 import type { AppUpdateEvent, ConfigMigrationPlan, ConfigMigrationProgress } from '@shared/types'
 import { STATUSBAR_HEIGHT, TITLEBAR_HEIGHT } from '@shared/chrome'
@@ -140,20 +138,16 @@ async function boot(): Promise<void> {
 }
 
 /**
- * 初始化入口：**dsh 缺失**（未安装 / 未初始化）时自动打开 Harness 扩展的安装向导
- * 标签页（`xeonsky.harness` 贡献的 `dssh://view/harness-wizard` 本地视图）。
+ * 初始化入口：**dsh 缺失**（未安装 / 未初始化）时自动打开安装向导标签页。
  *
  * 刻意不做成强制：向导只是一条可关闭的动态标签页，用户随后可以自由离开；配置目录
  * 迁移进行中也不打开 —— 向导里也有全屏卡片，打开会与迁移进度互相遮挡。
- *
- * 依赖 `extState.tabs`（扩展贡献点载入完成）才调得动 `openExtTab`，故把它放进
- * watch 源：启动早期 dshMissing 已置位而贡献点未到时，载入完成后这一刻会补开。
  */
-watch([dshMissing, migration, () => extState.tabs.map((t) => `${t.extId}/${t.key}`).join(',')], () => {
+watch([dshMissing, migration], () => {
     if (!shellMeta.isCore) return
     if (migration.value) return
     if (!dshMissing.value) return
-    openExtTab('xeonsky.harness', 'wizard')
+    openWizardTab()
 })
 
 onMounted(() => {

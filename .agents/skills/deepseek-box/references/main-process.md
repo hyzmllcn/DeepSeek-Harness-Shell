@@ -13,13 +13,12 @@ kernel/     ← 稳定的「机制」：不认识任何业务名词，只认识�
   operations.ts   进度注册表 + 取消令牌 + trackedOperation（纯逻辑，emit 由外部注入）
   treeops.ts      整目录删除的唯一出口（转发 dsh/fsutil 的 removeTree/removeQuietly*）
   services.ts     服务槽：provideService / useService（模块间解耦，见下）
-  extroute.ts     扩展端点挂载点（固定 `/ext` 前缀；内核为扩展开的受控口子，仍走同一个 Router）
   logger.ts       全进程唯一日志入口（pino + pino-roll；目录由启动方注入，kernel 不认业务目录）
 modules/    ← 可插拔的「策略」：每个功能一个文件，自己声明路由
-  settings.ts  dsh.ts  env.ts  shell.ts  tabdrag.ts  appupdate.ts  configdir.ts  extensions.ts
+  settings.ts  dsh.ts  env.ts  shell.ts  tabdrag.ts  appupdate.ts  configdir.ts  download.ts
   index.ts        allModules()：模块清单
 app/ipc.ts  ← 装配器：建 Router → new ModuleRegistry(allModules()) → mountRoutes
-app/… dsh/… zip/ download/ ← 具体实现，被 modules 调用（modules 不互相 import）
+app/… dsh/… download/ ← 具体实现，被 modules 调用（modules 不互相 import）
 ```
 
 **依赖方向是单向的**：`modules → kernel`、`modules → app/dsh`；**模块之间不 import**。
@@ -83,11 +82,11 @@ export default defineModule({
 | `configmigrate.ts` | 配置目录迁移 | 计划持久化、`scanTree` / `migrateTree`、`rollbackMoves`（**全 async**：逐目录 `setImmediate` 让出事件循环，避免大目录搬迁把界面卡死） |
 | `models.ts` | 模型与余额 | `readModelsInfo(consented, env)` / `readCurrentBalance(consented, env)`；读 dsh 的**合成**配置（`dshPatchLayers`）+ `.credentials.yaml`；**不依赖 electron**（`installNodeModules` 由 `ipc.ts` 注入），密钥只留主进程。两个入口都以 `settings.modelsCredConsent` 为前置：未授权时直接回 `no-consent`，**不读配置、不读凭据文件、不联网**（把关在主进程，不靠渲染层自觉）。缺 dsh 安装（无 bundle 层）时退回只看凭据引用，并区分 `dsh-missing`（提示去装）与 `no-provider`（提示去配） |
 | `ipc.ts` | **装配器**（已瘦身到 ~50 行） | 建 `Router` + `new ModuleRegistry(allModules())` + `mountRoutes`；导出 `registerIpc` / `runModuleReady` / `runModuleQuit`。**不再直接登记端点** |
-| `ui.ts` | 窗口 / 托盘 / 快捷键 | `createShellWindow` / `createTray` / `syncGlobalHotkey`。**窗口级 webview 机制留在这里**（`buildShellWindow` 的 `webviewTag: true`、`did-attach-webview` 挂右键菜单 / 快捷键、`will-attach-webview` 阻止嵌套、`openWebWindow` / `createPopupWindow`）—— 因外壳内容区全靠 `<webview>` 渲染，属核心通路；其中**纯策略**（弹窗尺寸 / 真弹窗 vs 新标签判定）经 `app/webview.ts` 门面转发到内置扩展 `xeonsky.browser` |
+| `ui.ts` | 窗口 / 托盘 / 快捷键 | `createShellWindow` / `createTray` / `syncGlobalHotkey`。**窗口级 webview 机制在这里**（`buildShellWindow` 的 `webviewTag: true`、`did-attach-webview` 挂右键菜单 / 快捷键、`will-attach-webview` 阻止嵌套、`openWebWindow` / `createPopupWindow`）—— 外壳内容区全靠 `<webview>` 渲染，属核心通路 |
 | `appupdate.ts` | 应用自更新 | 解析 GitHub Releases、后台下载、事件广播；启动守卫 `runBootGuard` / `rollbackAppUpdate` / `startAutoCheckIfEnabled` **均为 async**（内部等 `restorePrevious` / `takeRollbackResult`） |
 | `appslots.ts` | A/B 版本槽 | 归档旧版、生成回退脚本、启动健康守卫。文件操作（`pruneArchives` / `takeRollbackResult` / `pruneRollbackScripts` / `writeRollbackScript` / `restorePrevious` / `canWriteDir`）**全 async** |
 | `bootguard.ts` | 启动守卫判定（**纯逻辑**） | `decideBootGuard`：无记录 / 记录过期 / 计数 / 触发回退 / 放弃回退，五选一 |
-| `webview.ts` | **内核侧内嵌浏览器门面** | 四类导出：`initWebviewSession()` / `reapplyWebviewProxy()`（按约定名查能力槽 `ext:xeonsky.browser` 并转发，查不到就降级并打 warn）、`parsePopupSize()` / `decideOpenAction()`（窗口级**纯策略**转发，查不到回落内核内联兜底）。**注意时机**：`initWebviewSession` 必须在 `startLoader()` 之后、`createShellWindow()` 之前 **await** 调用（权限处理器要在建窗前装好）。UA / 代理 / 权限判定与窗口级纯策略本身已迁到内置扩展 `xeonsky.browser`（`src/extensions/xeonsky.browser/`）；硬件加速更早（ready 前），由 `extensions/preready.ts` 预读 manifest 处理 |
+| `webview.ts` | **内核侧内嵌浏览器** | `initWebviewSession()` / `reapplyWebviewProxy()`（UA / 代理 / 权限处理器直接作用于 `session.defaultSession`）、`parsePopupSize()` / `decideOpenAction()`（窗口级纯策略）、`resolveInput` / `resolveTarget`。**注意时机**：`initWebviewSession` 必须在 `createShellWindow()` 之前 **await** 调用（权限处理器要在建窗前装好）。硬件加速更早（ready 前），由 `src/main/index.ts` 直接按 `settings.hardwareAcceleration` 决定 |
 | `autolaunch.ts` | 开机自启（「启动增强」） | Windows / macOS 走 `app.setLoginItemSettings`，Linux 写 `~/.config/autostart` 的 .desktop |
 | `confirmDialog.ts` | 独立确认子窗口 | 替代内嵌 `ElMessageBox.confirm`：OS 管理焦点与模态，不遮挡页面；外观由渲染层 `ConfirmWindow.vue` 负责 |
 | `rollbackscript.ts` | 回退脚本纯文本构造（**纯逻辑**） | 老实现内联在 appslots.ts 的三个坑逐条规避（不靠 `tasklist | findstr` errorlevel 判存活等） |
@@ -115,7 +114,6 @@ export default defineModule({
 | `child.ts` | 子进程共同流程（**纯编排**） | spawn → 登记 → 收日志 → 可取消 → 只 settle 一次（原在 npm / 解压三处各写一遍） |
 | `logbus.ts` | 日志环形缓冲 + 子进程登记表 | 不依赖 dsh 服务状态，被整条 dsh 链路共用 |
 | `pluginManifest.ts` | dsh profile / 组合包清单**纯读取** | 不碰 fs、不 import electron；`readBundleList` / `readBundlePatchFiles` / `requiredBundles` 供 `dshPatchLayers.ts` 合成有效配置层。（插件的增删启停原在此体系内，随「设置 → 插件」页移除） |
-| `ptcNode.ts` / `ptcNodeSync.ts` | 给 dsh PTC（run_code）worker 指定真正的 node | 把 `nodeExecutable` 写进 **home 级** patch 层（home 层压过 profile 层）；修复 electron.exe 冒充 Node 被 dsh worker 清环境后崩溃的问题 |
 | `installs.ts` | 版本化目录 | 见下 |
 | `pnpmEntry.ts` | 内置 pnpm 入口解析（**纯逻辑**） | `pnpmEntryRel` / `pnpmEntryIn` / `isPnpmPackageReady`。⚠️ 入口名随 pnpm 大版本变（12+ = `package/bin/pnpm.mjs`，≤ 11 = `package/bin/pnpm.cjs`），**不要写死文件名**；manifest 的 `bin.pnpm` 在 12 指向根级 sh 脚本，node 跑不了 |
 | `tools.ts` | 路径解析 | `localNodeExecPath` / `nodeRuntimeFor` / `resolveDshModule` / `findSystemNode` |
@@ -170,10 +168,6 @@ export default defineModule({
   设置页「下载」面板（`views/settings/DownloadPanel.vue`）消费；进度经 `download:progress` 事件推送
   （模块 `onReady` 里 `onProgress()` 注册订阅、`onQuit` 里 `shutdownDownloads()` 收尾）。
 - **同一目标去重**：门面的 `inFlightDownloads` 按小写化最终路径合并，后到者订阅同一任务；支持 `signal` 取消。
-- 归档核心 `src/main/zip/`（原 `xeonsky.extm/sevenzip/` 已下沉）：`core.ts` 以模块单例暴露
-  `zipAvailable` / `pkgStatus` / `listPackages` / `extractPackage`，加载器（`loader/index.ts`）直接 import 解包扩展包，
-  `xeonsky.extm` 面板只转发包清单；二进制在 `src/main/zip/bin/<平台>/`（`asarUnpack` 指向 `src/main/zip/bin/**`），
-  配置在 `<配置目录>/data/zip.json`。
 - 取消是单活动令牌（`kernel/operations.ts` 的 `beginCancelable` / `cancelActive` / `CANCELED_MESSAGE`，
   原 `dsh/cancel.ts` 已并入），下载与解压都挂上去；路由 `POST /installs/cancel`；取消后返回
   `{ ok:false, canceled:true }`，渲染层不当作错误。

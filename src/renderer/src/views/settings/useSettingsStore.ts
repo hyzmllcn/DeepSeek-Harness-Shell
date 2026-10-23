@@ -186,8 +186,8 @@ export const useSettingsStore = defineStore('settings', () => {
     }
 
     // 本 store 只保留与表单 / 防抖保存强耦合的动作。dsh 那组动作（启停 / 版本 / 更新 /
-    // 卸载）已随「环境」「DeepSeek」两个面板搬进内置扩展 xeonsky.harness，由扩展自己
-    // 与内核动作拼装（见 extensions/xeonsky.harness/panels/useHarnessActions.ts）。
+    // 卸载）与「环境」「DeepSeek」两个面板放在一起，由面板自己与内核动作拼装
+    // （见 views/harness/panels/useHarnessActions.ts）。
     const actions: SettingsActions = {
         browseWorkspace,
         browseDshBin,
@@ -206,8 +206,8 @@ export const useSettingsStore = defineStore('settings', () => {
     watch(() => state.theme, (t: Theme) => applyTheme(t))
     // 配色方案即时生效（外部改动经 fillFrom 改 state 时这个 watch 也会跑）。
     watch(() => state.colorScheme, (id) => applyColorScheme(id))
-    // 注：「预发布开关 / npm 镜像源变化 → 重建 dsh 版本列表」这条 watch 已随 dsh 面板迁到
-    // xeonsky.harness（panels/DshPanel.vue）：它只服务于那个面板的版本下拉。
+    // 注：「预发布开关 / npm 镜像源变化 → 重建 dsh 版本列表」这条 watch 在 DshPanel.vue
+    // （views/harness/panels/）：它只服务于那个面板的版本下拉。
 
     // ---- 外部配置自动同步：settings.json / dsh 的 profile patch 被外部改动。 ----
     const offSettingsChanged = window.api.on('settings:changed', (s) => {

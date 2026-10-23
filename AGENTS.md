@@ -35,7 +35,7 @@ DeepSeek Box —— DeepSeek Harness 的 Electron 桌面外壳（Electron 44 + e
 ## 关键红线
 
 - IPC 契约唯一来源是 `src/shared/api.ts`；新增端点写进对应的 `src/main/modules/<功能>.ts`（新功能挂进 `modules/index.ts`），preload 不改。
-- 主进程 HTTP 一律走 `httpFetch(scope, ...)`；推送走 `runtime.ts` 的发送函数。扩展只能经 API 面触达内核（主进程 `ExtContext`、渲染层 `src/extensions/renderer-api.ts`），扩展内禁止裸 `fetch`（走 `system.net`）。
+- 主进程 HTTP 一律走 `httpFetch(scope, ...)`；推送走 `runtime.ts` 的发送函数；禁止裸 `fetch`。
 - 密钥不出主进程；设置结构变更必须升 `settingsVersion` 且向后兼容。
 - 新增文案 zh / en 两处对齐；hant 是差异覆盖目录，**无需同步补充**（新增键不必补繁体）；用户可见文案必须 i18n。
 - UI 组件优先 `antdv-next`（`<a-*>`），禁止新增 `el-*`；按需引入由构建器自动注入，不要手动 import 组件或全量注册。

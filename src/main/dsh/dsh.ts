@@ -13,7 +13,6 @@ import type { NodeRuntime } from './tools'
 import { resolveDshModule, nodeRuntimeForCfg } from './tools'
 import { loadSettings, mt } from '../app/settings'
 import { proxyEnv } from './net'
-import { describePtcNode, syncPtcNode } from './ptcNodeSync'
 import { WATCHDOG_CODE } from './watchdog'
 import { killAllChildren, killTree, pushLog, rememberChild } from './logbus'
 import { logger } from '../kernel/logger'
@@ -233,8 +232,10 @@ function spawnWatchdog(rt: NodeRuntime, launch: { entry: string; args: string[] 
 
     const rl = createInterface({ input: child.stdout! })
     rl.on('line', (line) => {
-        coreLog.info(line)
-        pushLog('o', line)
+        // dsh web 打印的地址带访问令牌（?token=...），日志与终端里只保留脱敏后的形式。
+        const shown = line.replace(/([?&]token=)[^&\s]+/gi, '$1***')
+        coreLog.info(shown)
+        pushLog('o', shown)
         const m = line.match(/dsh web:\s*(https?:\/\/\S+)/i)
         if (m) finish(m[1])
     })
@@ -280,10 +281,6 @@ async function runOneRestart(): Promise<void> {
         await stopDshGracefully()
         const effective = { ...loadSettings() }
         effective.port = await resolvePort(effective)
-        // PTC（run_code）worker 启动时会清空环境变量，必须用真 node；每次启动前
-        // 按当前档位重算并写入 dsh 的 home 级 patch（幂等）。
-        const ptc = syncPtcNode(effective.nodeRuntime)
-        log.info(describePtcNode(ptc))
         const url = await launchServer(effective)
         setCurrentUrl(url)
         sendCore('dsh:url', url) // 只通知核心窗口：dsh UI 由核心窗口承载

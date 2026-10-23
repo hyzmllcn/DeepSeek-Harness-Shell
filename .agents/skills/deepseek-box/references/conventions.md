@@ -31,12 +31,6 @@
 - **新增键时只需改 zh / en 两处**；hant **无需同步补充**，未覆盖的键自动回落到简体基座。
 - **删除键时三处都要删**：hant 必须是 zh 的**子集**——只删 zh 会让 hant 留下孤儿键。
   本仓库已无单测守护这条，务必**人工核对**（新增两处、删除三处，方向不同）。
-- **扩展的界面文案由扩展自管**，不写进外壳的 `shared/locales/{zh,en}`：扩展在自己目录放
-  `locales.ts` 导出 `extLocales`（`{ zh, en }` 字典表），键统一挂 `ext.<稳定名>.*` 命名空间
-  （稳定名 = id 驼峰，如 `ext.xeonskyExtm.*`）。渲染层 `renderer/src/extensions/locales.ts`
-  的 `EXT_LOCALES` 静态表负责装配（内置扩展编译进 bundle、磁盘上无目录可扫，与 LOCAL_VIEWS
-  同构），合并后注入 `shared/locales/ext.ts` 的扩展层并立即并进当前消息目录 —— 扩展键
-  不受语言切换 / 翻译风格影响。命名空间冲突只告警不阻断。
 - 文案是程序的一部分（`src/shared/locales/` 不算文档），可随功能一起改。
 
 ## 文档
@@ -79,20 +73,11 @@
   - 主进程：`import { logger } from '../kernel/logger'` → `const log = logger('[Manager]')`，然后 `log.error({ err }, 'msg')`（结构化字段放第一参，消息放第二参）。
   - 渲染层：`import { logger } from './lib/logger'`，用法一致。渲染层的 pino 是 **browser 构建**，输出只能进 devtools；**warn 及以上会自动上报主进程落盘**（`POST /logs/renderer`）。
   - 落盘位置：`<配置目录>/logs/dsbox.log`（pino-roll，5 MB 轮转、保留 5 个历史文件）。开发态控制台走 pino-pretty 单行彩色，发行态走 JSON。
-  - **两个故意保留 `console.*` 的地方**：`dsh/watchdog.ts`（`WATCHDOG_CODE` 是脱离进程的独立脚本，不能依赖 pino）；`extensions/loader/registry.ts` 的默认兜底 sink（加载器启动时会注入真 sink 替换它）。
-  - 日志消息用**英文**（诊断文本，面向开发者；`[Manager]` / `[Core]` / `[ext]` / `[shell]` 作为 `tag` 沿用）。
+  - **唯一故意保留 `console.*` 的地方**：`dsh/watchdog.ts`（`WATCHDOG_CODE` 是脱离进程的独立脚本，不能依赖 pino）。
+  - 日志消息用**英文**（诊断文本，面向开发者；`[Manager]` / `[Core]` / `[shell]` 作为 `tag` 沿用）。
 - 保持渲染层安全底线：`contextIsolation` 开启、渲染层无 Node、只经 `window.api`；放宽必须说明理由。
-- **扩展只经 API 面触达内核**（两个方向都成立，别绕）：
-  - 主进程侧：扩展只用 `ExtContext`（`main/extensions/loader/ctx.ts`），**不 import 内核模块**；
-  - 渲染层侧：扩展只用 `src/extensions/renderer-api.ts`（`extApi` / `extT` / `extErrorMessage`），
-    **不 import 外壳内部**（`@/lib/*`、`@/components/*`、`@/shell/*` 都不行）。
-    需要新能力时**先扩那个 API 面**。外壳自身的界面（`renderer/src/views/**`）不受此限。
-- **内置扩展一个扩展一个目录**：`src/extensions/<id>/`（`main.ts` + `manifest.ts` + 可选 `*.vue`），
-  清单写在扩展自己目录里，登记表（`main/extensions/builtin/index.ts`）只列「有哪些」。
-  两端都用 `@ext/<id>/...` 引用。新增内置扩展 = 建一个目录 + 登记表加一行 + tsconfig 无需再改
-  （include 已覆盖 `src/extensions/`）。
 - **打包时源码不得进 asar**：`package.json` 的 `build.files` 里排除规则必须是 **`!src/**`**（递归），
-  不要写成 `!src/*`（只挡第一层，挡不住 `src/extensions/<id>/` 深处）。
+  不要写成 `!src/*`（只挡第一层）。
   另外**不要往 `files` 里加裸 `**/*`** —— 加了就会把整棵 `src/` 重新纳入。
 
 ## 兼容性与回退

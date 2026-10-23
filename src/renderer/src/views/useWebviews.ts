@@ -1,6 +1,5 @@
-import { activeTab, keptTabIds, webTabs } from '../shell/tabs'
+import { activeTab, keptTabIds, webTabs, WIZARD_URL } from '../shell/tabs'
 import type { WebTab } from '../shell/tabs'
-import { parseExtViewTarget } from '@shared/types'
 
 /**
  * `<webview>` 生命周期管理：创建、保活、裁剪、缩放与 home 地址跟随。
@@ -88,8 +87,8 @@ export function useWebviews(host: WebviewHost) {
         const holder = holderEls[tab.id]
         if (!holder || !tab.url) return
         if (wvById.get(tab.id)) return
-        // 扩展本地视图伪链接（dssh://view/<名>）不是网页：由宿主按视图名挂组件，不建 webview。
-        if (parseExtViewTarget(tab.url)) return
+        // 安装向导伪链接不是网页：由宿主按 URL 挂组件，不建 webview。
+        if (tab.url === WIZARD_URL) return
 
         const wv = document.createElement('webview') as WebviewEl
         // 必须显式允许弹窗，target=_blank / window.open 才会进入主进程的

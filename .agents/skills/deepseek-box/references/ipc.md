@@ -108,6 +108,5 @@ export default defineModule({
 | `modules/appupdate.ts` | `GET /app/meta`、`/app/update/state|slots`、`POST /app/update/check|rollback|restart`、`/app/relaunch`、`/app/quit` |
 | `modules/shell.ts` | `GET /shell/meta`、`POST /shell/open-url|focus-core|move-tab`、`PUT /shell/title`、`/windows/*`、`/dialog/*`、`/hotkeys/state` |
 | `modules/tabdrag.ts` | `POST|PATCH|DELETE /tab-drag`、`POST /tab-drag/drop` |
-| `modules/extensions.ts` | `GET /extensions`、`PUT /extensions/:id/enabled`、`POST /extensions/:id/forgive`、`POST /extensions/:id/reload`、`POST /extensions/reload-all`、`POST /extensions/exit-safe-mode` | 扩展管理：列表 / 启停 / 重载 / 安全模式；扩展端点走 `/ext/...`（`kernel/extroute.ts`） |
 
-完整列表以 `src/shared/api.ts` 为准（当前 91 条）；模块声明与它**逐条对齐**。需要校验时可写一次性脚本（放 `.agents/temp/`）比对「登记 / 声明 / 缺失 / 多余 / 模块内重复」五项。
+完整列表以 `src/shared/api.ts` 为准；模块声明与它**逐条对齐**。需要校验时可写一次性脚本（放 `.agents/temp/`）比对「登记 / 声明 / 缺失 / 多余 / 模块内重复」五项。

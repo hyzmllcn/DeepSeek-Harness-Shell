@@ -9,7 +9,7 @@ export interface Settings {
    * 只有真正的老配置才做键名拆分与默认值升级，用户后来手填的值不会被反复改写。
    */
     settingsVersion?: number
-    /** Bind host for dsh. dsh only allows 127.0.0.1 today. */
+    /** Bind host for dsh. dsh accepts one concrete local IPv4/IPv6 address and rejects wildcards (0.0.0.0 / ::). */
     host: string
     /**
    * Preferred starting port for auto-selection:
@@ -54,7 +54,7 @@ export interface Settings {
    * 运行 dsh / npm 的 Node 运行时：
    *  - 'local'（默认）：应用按架构下载解压到配置目录的 Node（<configDir>/node），
    *    初始化向导默认选中最新 LTS。
-   *  - 'system'：系统 Node（要求 ≥ 20）。
+   *  - 'system'：系统 Node（需 22.19+ 或 24+，不含 23，与 dsh 的 engines 对齐）。
    *
    * 旧版的 'electron'（用 Electron 自带 Node 冒充）已移除，老配置由
    * loadSettings 的归一化迁移为 'local'（见 normalizeNodeRuntime）。
@@ -109,8 +109,8 @@ export interface Settings {
     appIcon: string
     /**
      * 标题栏固定标签页中被隐藏的 id 列表。
-     * 内置三站为 'home' | 'chat' | 'platform'，扩展贡献为 'ext-<extId>-<key>'；
-     * 空数组 = 全部显示。管理界面在「设置 → 外观 → 固定标签页」。
+     * 内置三站为 'home' | 'chat' | 'platform'；空数组 = 全部显示。
+     * 管理界面在「设置 → 外观 → 固定标签页」。
      */
     fixedTabsHidden: string[]
     /**
@@ -613,22 +613,6 @@ export const NEWTAB_URL = 'dssh://about:blank'
 /** 目标是否表示“打开内置导航页”（NEWTAB_URL）。 */
 export function isNewTabTarget(target: string | null | undefined): boolean {
     return typeof target === 'string' && target === NEWTAB_URL
-}
-
-/**
- * 扩展自定义标签页的**本地视图**伪链接前缀：`dssh://view/<视图名>`。
- *
- * 扩展贡献点（`ExtTabContribution.url`）填这个形式时，标签页**不进 webview**，
- * 由外壳按视图名挂载登记的本地组件（`tabviews.ts`，只有内置 / 系统扩展能解析）——
- * 「扩展自定义标签页界面」的通用通路，第一个使用者是 Harness 安装向导。
- */
-export const EXT_VIEW_PREFIX = 'dssh://view/'
-
-/** 解析扩展本地视图伪链接；是则返回视图名，否则 null。 */
-export function parseExtViewTarget(url: string | null | undefined): string | null {
-    if (typeof url !== 'string' || !url.startsWith(EXT_VIEW_PREFIX)) return null
-    const name = url.slice(EXT_VIEW_PREFIX.length)
-    return name ? name : null
 }
 
 /**

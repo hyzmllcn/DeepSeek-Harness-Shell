@@ -13,9 +13,6 @@ import { tt, applyExtTranslation, applyLocaleChange, currentLocale } from '../..
 import { confirmDialog } from '../../lib/confirm'
 import { COLOR_SCHEMES, isDark, schemeBackgrounds } from '../../lib/theme'
 import { useSettingsStore } from './useSettingsStore'
-import { extState } from '../../extensions/store'
-import { extTabId } from '../../extensions/tabs'
-import { isTabViewContribution } from '../../extensions/tabviews'
 import { FIXED_LABEL_KEY } from '../../shell/tabs'
 import type { AppIconInfo, FunLocale, ResolvedLocale } from '@shared/types'
 
@@ -107,29 +104,19 @@ function onSysScaleChange(checked: boolean): void {
 // 固定标签页（标题栏左侧常驻项的显示开关）
 // ---------------------------------------------------------------------------
 
-/** 一行固定标签页：id + 展示名（扩展贡献的行附带来源扩展名）。 */
+/** 一行固定标签页：id + 展示名。 */
 interface FixedTabRow {
     id: string
     label: string
-    extName: string
 }
 
 /**
- * 固定标签页清单 = 内置三站（home/chat/platform）+ 扩展贡献的 fixed 项。
+ * 固定标签页清单 = 内置三站（home/chat/platform）。
  * 与标题栏左侧图标一一对应：这里关掉哪个，标题栏就少哪个图标。
  */
-const fixedTabRows = computed<FixedTabRow[]>(() => {
-    const rows: FixedTabRow[] = (['home', 'chat', 'platform'] as const).map((k) => ({
-        id: k,
-        label: tt(FIXED_LABEL_KEY[k]),
-        extName: ''
-    }))
-    for (const c of extState.tabs) {
-        if (!c.fixed || isTabViewContribution(c)) continue
-        rows.push({ id: extTabId(c.extId, c.key), label: tt(c.titleKey), extName: c.extName })
-    }
-    return rows
-})
+const fixedTabRows = computed<FixedTabRow[]>(() =>
+    (['home', 'chat', 'platform'] as const).map((k) => ({ id: k, label: tt(FIXED_LABEL_KEY[k]) }))
+)
 
 /** 开关当前态：true = 显示（不在隐藏列表里）。 */
 function isFixedOn(id: string): boolean {
@@ -334,7 +321,6 @@ async function removeIcon(it: AppIconInfo): Promise<void> {
                 <div class="fixedtabs">
                     <div v-for="row in fixedTabRows" :key="row.id" class="fixedtab">
                         <span class="fixedtab__label">{{ row.label }}</span>
-                        <span v-if="row.extName" class="fixedtab__ext">{{ row.extName }}</span>
                         <a-switch :checked="isFixedOn(row.id)" @change="onFixedToggle(row.id)" />
                     </div>
                 </div>
@@ -507,10 +493,5 @@ async function removeIcon(it: AppIconInfo): Promise<void> {
     white-space: nowrap;
     font-size: 13px;
     color: var(--el-text-color-regular);
-}
-.fixedtab__ext {
-    flex: 0 0 auto;
-    font-size: 11px;
-    color: var(--el-text-color-secondary);
 }
 </style>

@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import type { Component } from 'vue'
 import { ArrowLeftOutlined, ArrowRightOutlined, ReloadOutlined } from '@antdv-next/icons'
-import { parseExtViewTarget } from '@shared/types'
-import { webTabs, activeTab, openTarget, setHomeUrl } from '../shell/tabs'
-import type { WebTab } from '../shell/tabs'
-import { resolveTabViewForTab } from '../extensions/tabviews'
+import { webTabs, activeTab, openTarget, setHomeUrl, WIZARD_URL } from '../shell/tabs'
 import NewTab from './NewTab.vue'
 import { shellMeta } from '../shell/state'
 import { useWebviews } from './useWebviews'
@@ -77,42 +73,15 @@ const wvApi = useWebviews({
 })
 const { setHolder } = wvApi
 
-// ---- 扩展本地视图标签页（dssh://view/<名> 伪链接）----
-// defineAsyncComponent 每次调用都造一个新组件，必须按视图名 memo，
-// 否则重渲染会把标签页内容整个重建。
+// ---- 安装向导标签页（dssh://view/harness-wizard 伪链接）----
+// 它是唯一不进 webview 的标签页内容；组件只创建一次，避免重渲染时整个重建。
+const WizardTab = defineAsyncComponent(() => import('./harness/WizardTab.vue'))
 
-/** 扩展本地视图组件缓存：视图名 → 异步组件。 */
-const extViewComps = new Map<string, Component>()
-
-/** 某标签页若承载扩展本地视图，返回其组件；否则 null（普通网页标签页）。 */
-function extViewCompOf(tab: WebTab): Component | null {
-    const loader = resolveTabViewForTab(tab)
-    if (!loader) return null
-    const name = parseExtViewTarget(tab.url) ?? ''
-    let comp = extViewComps.get(name)
-    if (!comp) {
-        comp = defineAsyncComponent(loader)
-        extViewComps.set(name, comp)
-    }
-    return comp
-}
-
-/** 全部标签页的本地视图表（模板按 tab.id 查），随标签列表与扩展贡献变化。 */
-const extViewByTab = computed<Record<string, Component>>(() => {
-    const map: Record<string, Component> = {}
-    for (const t of webTabs.list) {
-        const c = extViewCompOf(t)
-        if (c) map[t.id] = c
-    }
-    return map
-})
-
-/** 网址导航栏仅在动态标签页激活时显示；三个固定站不显示。 */
+/** 网址导航栏仅在动态标签页激活时显示；三个固定站与向导页不显示。 */
 const showNav = computed(() => {
     const t = activeTab()
     if (t?.kind !== 'dynamic') return false
-    // 扩展本地视图标签页没有「网页导航」概念（无 webview），不显示地址栏
-    return !parseExtViewTarget(t.url)
+    return t.url !== WIZARD_URL
 })
 
 // ---- 导航栏动作 ----
@@ -312,8 +281,8 @@ onBeforeUnmount(() => {
             >
                 <!-- 新建标签页：内核导航页视图。 -->
                 <NewTab v-if="tab.kind === 'newtab'" />
-                <!-- 扩展本地视图（dssh://view/<名>）：挂载登记的组件，不经 webview。 -->
-                <component :is="extViewByTab[tab.id]" v-else-if="extViewByTab[tab.id]" />
+                <!-- 安装向导：内核本地视图，不经 webview。 -->
+                <component :is="WizardTab" v-else-if="tab.url === WIZARD_URL" />
                 <template v-else>
                     <div class="whost__holder" :ref="(el) => setHolder(tab.id, el as HTMLDivElement | null)"></div>
                     <div v-if="!tab.url" class="whost__wait">

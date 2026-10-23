@@ -27,12 +27,19 @@ export function withV(v: string | null | undefined, placeholder = '—'): string
     return /^[vV]/.test(v) ? v : `v${v}`
 }
 
-/** dsh 可用的 Node 最低主版本 —— 低于它的 Node 装了也跑不起 dsh。 */
-export const MIN_NODE_MAJOR = 20
+/**
+ * dsh 可用的 Node 最低版本 —— 与上游 engines `^22.19.0 || >=24.0.0` 对齐（23 不在支持范围）。
+ * 22.19 之前的 22.x 缺少 dsh 依赖的 API。
+ */
+export const MIN_NODE_VERSION = '22.19'
 
-/** 取版本号主版本（`v22.14.0` / `22.14.0` → 22）；解析不出返回 null。 */
-export function nodeMajor(v: string | null | undefined): number | null {
-    if (!v) return null
-    const m = /^v?(\d+)/.exec(v.trim())
-    return m ? parseInt(m[1], 10) : null
+/** Node 版本是否满足 dsh 的运行要求：22.19+ 的 22.x，或 24+；23.x 不支持。 */
+export function isSupportedNode(v: string | null | undefined): boolean {
+    if (!v) return false
+    const m = /^v?(\d+)(?:\.(\d+))?/.exec(v.trim())
+    if (!m) return false
+    const major = parseInt(m[1], 10)
+    const minor = m[2] ? parseInt(m[2], 10) : 0
+    if (major === 22) return minor >= 19
+    return major >= 24
 }

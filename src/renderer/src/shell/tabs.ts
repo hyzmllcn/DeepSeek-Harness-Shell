@@ -17,11 +17,9 @@ import { isNewTabTarget } from '@shared/types'
 /**
  * 标签页种类：
  *  - home / chat / platform —— 内置三固定站（核心窗口专属，见 setCoreRole）；
- *  - fixed —— 扩展贡献的固定标签页（`ExtTabContribution.fixed`），同样常驻不可关闭，
- *    由 `extensions/tabs.ts` 的同步器负责增删；
  *  - dynamic / newtab —— 用户可开可关的动态页与内置导航页。
  */
-export type WebTabKind = 'home' | 'chat' | 'platform' | 'fixed' | 'dynamic' | 'newtab'
+export type WebTabKind = 'home' | 'chat' | 'platform' | 'dynamic' | 'newtab'
 
 /** 动态标签页中保活（webview 常驻）的最近数量上限。 */
 export const KEEP_ALIVE_DYNAMIC = 3
@@ -86,6 +84,7 @@ export const FIXED_LABEL_KEY: Record<'home' | 'chat' | 'platform', string> = {
  * （App 的窗口标题同步与 TitleBar 的标签渲染都要用，故收敛在此，避免两处各写一份。）
  */
 export function tabLabel(tab: WebTab): string {
+    if (tab.id === WIZARD_TAB_ID) return tt('app.tabs.wizard')
     if (tab.kind === 'home' || tab.kind === 'chat' || tab.kind === 'platform') {
         return tt(FIXED_LABEL_KEY[tab.kind])
     }
@@ -153,42 +152,6 @@ export function closeTab(id: string): void {
     removeTabById(id)
 }
 
-/**
- * 插入或更新一个扩展贡献的固定标签页（幂等，由 `extensions/tabs.ts` 的同步器驱动）。
- * 已存在时只更新标题与 URL，不激活、不动用户的打开状态；id 撞上非固定标签页则忽略
- * （同步器生成的是 `ext-` 前缀 id，正常不会撞）。
- */
-export function upsertFixedTab(spec: { id: string; title: string; url: string }): void {
-    const existing = findTab(spec.id)
-    if (existing) {
-        if (existing.kind !== 'fixed') return
-        if (existing.title !== spec.title) existing.title = spec.title
-        if (existing.url !== spec.url) existing.url = spec.url
-        return
-    }
-    webTabs.list.push({
-        id: spec.id,
-        kind: 'fixed',
-        title: spec.title,
-        url: spec.url,
-        pinned: true,
-        keep: false,
-        visited: false, // 与内置三站同语义：打开过才开始保活
-        used: nextOrder()
-    })
-}
-
-/** 撤下一个扩展固定标签页（贡献点消失 / 扩展停用时）；若是激活页则回退相邻标签。 */
-export function removeFixedTab(id: string): void {
-    const i = webTabs.list.findIndex((t) => t.id === id && t.kind === 'fixed')
-    if (i < 0) return
-    webTabs.list.splice(i, 1)
-    if (webTabs.activeId === id) {
-        const next = webTabs.list[Math.min(i, webTabs.list.length - 1)] ?? webTabs.list[0] ?? null
-        webTabs.activeId = next ? next.id : null
-    }
-}
-
 /** 固定三站的规格（id=kind）。核心窗口才显示。 */
 const FIXED_SPECS: Array<{ id: string; kind: WebTabKind; url: string | null; title: string }> = [
     { id: 'home', kind: 'home', url: null, title: '' },
@@ -203,9 +166,7 @@ const FIXED_SPECS: Array<{ id: string; kind: WebTabKind; url: string | null; tit
  */
 export function setCoreRole(isCore: boolean): void {
     const hasKind = (k: WebTabKind): boolean => webTabs.list.some((t) => t.kind === k)
-    // 扩展贡献的 fixed 页与内置三站同待遇：非核心窗口一并撤下（回到核心时由
-    // extensions/tabs.ts 的同步器按贡献点补回）。
-    const fixedKinds = new Set<WebTabKind>(['home', 'chat', 'platform', 'fixed'])
+    const fixedKinds = new Set<WebTabKind>(['home', 'chat', 'platform'])
 
     if (!isCore) {
         for (let i = webTabs.list.length - 1; i >= 0; i--) {
@@ -259,6 +220,24 @@ export function openTab(url: string, title?: string): WebTab {
     }
     webTabs.list.push(tab)
     webTabs.activeId = tab.id
+    return tab
+}
+
+/** 安装向导标签页的固定 id 与伪链接；内容由 WebHost 直接挂载，不经 webview。 */
+export const WIZARD_TAB_ID = 'wizard'
+export const WIZARD_URL = 'dssh://view/harness-wizard'
+
+/** 打开（或聚焦）安装向导标签页；已存在时只激活，不重复开。 */
+export function openWizardTab(): WebTab {
+    const existing = findTab(WIZARD_TAB_ID)
+    if (existing) {
+        webTabs.activeId = WIZARD_TAB_ID
+        existing.used = nextOrder()
+        return existing
+    }
+    const tab = openTab(WIZARD_URL, tt('app.tabs.wizard'))
+    tab.id = WIZARD_TAB_ID
+    webTabs.activeId = WIZARD_TAB_ID
     return tab
 }
 

@@ -12,8 +12,8 @@ export const router = createRouter({
     history: createWebHashHistory(),
     routes: [
         { path: '/', name: 'web', component: () => import('../views/WebHost.vue') },
-        // 初始化页（安装向导）已不是路由：它并入 Harness 扩展贡献的向导标签页
-        // （`dssh://view/harness-wizard`，dsh 缺失时由 App.vue 自动打开）。
+        // 安装向导不是独立路由：它是内核标签页（`dssh://view/harness-wizard`，
+        // dsh 缺失时由 App.vue 自动打开，内容见 views/harness/WizardTab.vue）。
         {
             // 父路由不命名：命名路由配上未命名的空路径子路由会触发 Vue Router 警告，
             // 且按名字导航无法落到空路径子路由。导航统一用 path，由子路由 name 区分。
@@ -23,13 +23,12 @@ export const router = createRouter({
                 { path: '', name: 'settings-root', redirect: { name: 'settings-general' } },
                 { path: 'general', name: 'settings-general', component: () => import('../views/settings/GeneralPanel.vue') },
                 { path: 'appearance', name: 'settings-appearance', component: () => import('../views/settings/AppearancePanel.vue') },
+                { path: 'env', name: 'settings-env', component: () => import('../views/harness/panels/EnvPanel.vue') },
+                { path: 'dsh', name: 'settings-dsh', component: () => import('../views/harness/panels/DshPanel.vue') },
                 { path: 'log', name: 'settings-log', component: () => import('../views/settings/LogPanel.vue') },
                 { path: 'download', name: 'settings-download', component: () => import('../views/settings/DownloadPanel.vue') },
                 { path: 'hotkeys', name: 'settings-hotkeys', component: () => import('../views/settings/HotkeysPanel.vue') },
-                { path: 'about', name: 'settings-about', component: () => import('../views/settings/AboutPanel.vue') },
-                // 扩展贡献的面板：兜底路由，视图统一由 ExtSettingsPanel 渲染（扩展不注入组件）。
-                // 放在内置项之后，内置路径优先匹配（Router 按声明顺序取第一个匹配）。
-                { path: ':panelKey', name: 'settings-ext-panel', component: () => import('../extensions/ExtSettingsPanel.vue') }
+                { path: 'about', name: 'settings-about', component: () => import('../views/settings/AboutPanel.vue') }
             ]
         },
         { path: '/:pathMatch(.*)*', redirect: '/' }

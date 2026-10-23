@@ -17,17 +17,12 @@
         "outDir": "out/ts-web",
         "paths": {
             "@/*": ["./src/renderer/src/*"],
-            "@shared/*": ["./src/shared/*"],
-            "@ext/*": ["./src/extensions/*"]
+            "@shared/*": ["./src/shared/*"]
         }
     },
     "include": [
         "src/renderer/src/**/*",
         "src/renderer/src/**/*.vue",
-        "src/shared/**/*",
-        "src/extensions/**/*.vue",
-        "src/extensions/*.ts",
-        "src/extensions/*/**/*.ts"
-    ],
-    "exclude": ["src/extensions/**/main.ts"]
+        "src/shared/**/*"
+    ]
 }

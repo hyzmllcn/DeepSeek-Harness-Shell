@@ -26,7 +26,7 @@ import { asRecord } from '@shared/json'
  * 则按「后层声明了才覆盖」处理，只写 config 的层不会把下层的 disabled 抹掉。
  *
  * 本模块只做纯文本处理（不碰 fs、不 import electron），便于单测；
- * 文件位置见 `dshHome.ts`，落盘入口见 `settings.ts` / `models.ts` / `ptcNodeSync.ts`。
+ * 文件位置见 `dshHome.ts`，落盘入口见 `settings.ts` / `models.ts`。
  */
 
 /** dsh 认的 patch 文件名（profile 层与 home 层同名，靠目录区分）。 */

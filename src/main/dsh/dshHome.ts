@@ -18,8 +18,7 @@ import { PATCH_FILENAME } from './cordisPatch'
  * ```
  *
  * 组合顺序（低 → 高）：bundle 层 → profile 的 `cordis.patch.yml` → home 的
- * `cordis.patch.yml` → `--patch` 覆盖层。**home 层压过 profile 层**，所以 Box 只在
- * home 层写「全局覆盖」（如 ptc-runtime 的 nodeExecutable），用户可见的偏好
+ * `cordis.patch.yml` → `--patch` 覆盖层。**home 层压过 profile 层**，用户可见的偏好
  * （主题 / 语言）必须写 profile 层，否则 dsh 自己的设置表单会因被覆盖而拒绝写入。
  */
 

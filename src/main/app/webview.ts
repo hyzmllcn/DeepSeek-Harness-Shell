@@ -11,14 +11,9 @@ import { logger } from '../kernel/logger'
 /**
  * 内核侧的**内嵌浏览器模块** —— 内嵌页面（webview）的会话设置与浏览策略都从这里走。
  *
- * ## 这份实现从哪里来
- *
- * webview 功能（UA 生成、代理应用、权限策略判定、弹窗与输入解析）曾独立成内置扩展
- * `xeonsky.browser`（策略与机制分层：扩展出策略，`system.webview` 系统能力包装
- * defaultSession 出机制）。现已按「停用后会让内建功能失灵的实现该是内核模块」的判据
- * **整体迁回内核**：本文件合并了两边的全部实现，直接操作 `session.defaultSession`，
- * 不再经能力槽、不再有「扩展不可用」的降级分支 —— 外壳的整个内容区（含 dsh Web UI）
- * 本就靠 `<webview>` 渲染，浏览属核心通路，不该是可停用的可选件。
+ * UA 生成、代理应用、权限策略判定、弹窗与输入解析全部在本文件内（策略与机制同层），
+ * 直接操作 `session.defaultSession`：外壳的整个内容区（含 dsh Web UI）本就靠
+ * `<webview>` 渲染，浏览属核心通路。
  *
  * ## 与「窗口级 webview 机制」的分工
  *

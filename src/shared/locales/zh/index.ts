@@ -29,7 +29,8 @@ export default {
             openWindow: '在新窗口打开',
             moveWindow: '移动到其它窗口',
             moveWindowNoTarget: '没有其它窗口可以接收该标签页。',
-            promptPlaceholder: 'https://…'
+            promptPlaceholder: 'https://…',
+            wizard: 'DeepSeek Harness 安装'
         }
     },
     /** DeepSeek Harness 未安装全屏遮罩 */
@@ -92,11 +93,11 @@ export default {
         node: {
             notFound: '未检测到系统 Node',
             pick: '选择运行 dsh / npm 的 Node 环境',
-            runtimeSystem: '使用全局系统 Node（≥ 20）',
+            runtimeSystem: '使用全局系统 Node（22.19+）',
             runtimeLocal: '使用本地 Node（按当前架构下载到配置目录）',
             rtDefault: '默认',
-            need20: '需 Node ≥ 20',
-            hintSystem: '使用系统 PATH 上的 Node。仅在检测到 ≥ 20 时可用；版本过低或缺失时该选项被禁用。',
+            needVersion: '需 Node 22.19+',
+            hintSystem: '使用系统 PATH 上的 Node。仅在检测到 22.19+（或 24+，不含 23）时可用；版本过低或缺失时该选项被禁用。',
             hintLocal: '把 Node LTS 发行包按当前系统/架构下载并解压到配置目录，离线可复用，不依赖系统。选中一个尚未安装的版本，点「下一步」即开始下载。',
             deploying: '正在下载并部署 Node LTS…',
             systemNote: '将使用系统 Node {ver} 运行 DeepSeek Harness 与 npm。',
@@ -156,7 +157,7 @@ export default {
     /** 设置页（sv = Settings View） */
     sv: {
         cap: '设置',
-        nav: { general: '常规', appearance: '外观', env: '环境', dsh: 'DeepSeek', log: '终端', download: '下载', extensions: '扩展', hotkeys: '快捷键', about: '关于' },
+        nav: { general: '常规', appearance: '外观', env: '环境', dsh: 'DeepSeek', log: '终端', download: '下载', hotkeys: '快捷键', about: '关于' },
         intro: {
             general: '工作目录、端口、启动、性能、网络与配置目录等程序基础行为。',
             appearance: '界面语言、主题与缩放等观感设置。',
@@ -164,21 +165,8 @@ export default {
             dsh: 'DeepSeek Harness 的来源、更新，以及令牌供应商与余额。',
             log: 'DeepSeek Box 的实时输出（stdout / stderr）。',
             download: '下载任务队列与下载设置：断点续传、并发、限速。',
-            extensions: '扩展：系统 / 内置 / 外部三级，可查看状态、即时启停扩展、管理扩展包。',
             hotkeys: '键盘快捷键：系统全局的与常用的操作。',
             about: '关于应用与 DeepSeek Harness，以及更新检查。'
-        },
-        extpanel: {
-            missing: '该扩展当前不可用。',
-            inactive: '该扩展未处于运行状态。',
-            info: '扩展信息',
-            kind: '来源',
-            version: '版本',
-            status: '状态',
-            caps: '已申请能力',
-            dir: '所在目录',
-            reveal: '打开所在目录',
-            tabs: '该扩展提供的标签页'
         },
         general: {
             run: '运行',
@@ -390,7 +378,7 @@ export default {
             nodeRuntime: 'Node 运行时',
             nodeSystem: '系统自带',
             nodeLocal: '本地部署',
-            nodeRuntimeHint: '默认本地部署最新 LTS，也可改用系统自带的 Node（≥ 20）。改动后需重启生效。',
+            nodeRuntimeHint: '默认本地部署最新 LTS，也可改用系统自带的 Node（22.19+，不含 23）。改动后需重启生效。',
             installedVersions: '已安装版本',
             colVersion: '版本',
             colStatus: '状态',
@@ -406,7 +394,7 @@ export default {
             canceling: '取消中…',
             applyTxt: '改完 Node 运行环境后，点右侧立即重启 dsh 生效。',
             applyBtn: '立即应用',
-            runtimeUnusable: '当前选中的运行时不可用：未检测到可用的 Node（系统来源需 ≥ {major}，本地来源需先部署）。应用后 dsh 无法启动。',
+            runtimeUnusable: '当前选中的运行时不可用：未检测到可用的 Node（系统来源需 ≥ {version} 且不含 23，本地来源需先部署满足要求的版本）。应用后 dsh 无法启动。',
             currentVersion: '当前版本',
             latestLts: '最新 LTS',
             notDetected: '未检测到',
@@ -429,7 +417,7 @@ export default {
             installVersion: '安装此版本',
             currentSuffix: '（当前）',
             versionListHint: '列表来自 nodejs.org 的发行索引（新 → 旧）；安装会整体替换配置目录里已部署的那份 Node。',
-            tooOld: '该版本低于 DeepSeek Harness 要求的最低主版本（Node {major}），装了也跑不起 DeepSeek Harness。',
+            tooOld: '该版本低于 DeepSeek Harness 要求的 Node 版本（需 {version}+，不含 23），装了也跑不起 DeepSeek Harness。',
             npmSource: 'npm 来源',
             npmBundled: '程序内置',
             npmSystem: '系统自带',

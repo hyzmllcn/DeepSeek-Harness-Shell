@@ -167,7 +167,7 @@ const fixedPageReload = computed(() => {
     return k === 'home' || k === 'chat' || k === 'platform'
 })
 
-/** 内置三固定站的图标（扩展贡献的固定页没有专属图标，用首字符徽标代替）。 */
+/** 内置三固定站的图标。 */
 const FIXED_ICONS: Record<'home' | 'chat' | 'platform', Component> = {
     home: DeepSeekFilled,
     chat: MessageFilled,
@@ -175,7 +175,7 @@ const FIXED_ICONS: Record<'home' | 'chat' | 'platform', Component> = {
 }
 
 /**
- * 标题栏左侧的固定标签页（内置三站 + 扩展贡献的 fixed 页）：
+ * 标题栏左侧的固定标签页（内置三站）：
  *  - 仅核心窗口显示（副窗口只有「跳核心」按钮）；
  *  - 按「设置 → 外观 → 固定标签页」的开关过滤隐藏项（fixedTabsPref 镜像是响应式的，
  *    设置页切换开关后这里即时重算）。
@@ -186,11 +186,6 @@ const quickTabs = computed(() => {
     for (const kind of ['home', 'chat', 'platform'] as const) {
         if (isFixedTabHidden(kind) || !findTab(kind)) continue
         out.push({ id: kind, label: tt(FIXED_LABEL_KEY[kind]), icon: FIXED_ICONS[kind] })
-    }
-    for (const t of webTabs.list) {
-        if (t.kind !== 'fixed' || isFixedTabHidden(t.id)) continue
-        const label = tabLabel(t)
-        out.push({ id: t.id, label, badge: label.trim().charAt(0).toUpperCase() || '?' })
     }
     return out
 })

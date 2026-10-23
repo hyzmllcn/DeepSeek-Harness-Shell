@@ -6,7 +6,6 @@ import shell from './shell'
 import tabdrag from './tabdrag'
 import appupdate from './appupdate'
 import configdir from './configdir'
-import extensions from './extensions'
 import download from './download'
 
 /**
@@ -22,7 +21,7 @@ import download from './download'
  * `download` 排在最后：它的 `onReady` 要往窗口广播进度，`onQuit` 要中止在跑的任务 ——
  * 放在窗口相关模块之后装配，退出时就能最先被收尾（逆序）。
  */
-const modules: MainModule[] = [settings, dsh, env, shell, tabdrag, appupdate, configdir, extensions, download]
+const modules: MainModule[] = [settings, dsh, env, shell, tabdrag, appupdate, configdir, download]
 
 /** 全部模块（装配器与测试用）。 */
 export function allModules(): MainModule[] {

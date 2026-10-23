@@ -42,8 +42,8 @@ export async function loadShellMeta(): Promise<void> {
 /**
  * dsh 是否缺失（未安装 / 未初始化）。
  *
- * 为什么是**共享**状态而不是 App.vue 的局部 ref：安装向导现在是 Harness 扩展贡献的
- * 标签页（`dssh://view/harness-wizard`），安装完成后要由向导自己把它清掉 —— 否则
+ * 为什么是**共享**状态而不是 App.vue 的局部 ref：安装向导是内核标签页
+ * （`dssh://view/harness-wizard`），安装完成后要由向导自己把它清掉 —— 否则
  * App.vue 的 watch 会在 dshMissing 归位前把向导标签页又开回来。
  *
  * 更新时机：

@@ -28,7 +28,8 @@ export default {
             openWindow: 'Open in new window',
             moveWindow: 'Move to another window',
             moveWindowNoTarget: 'There is no other window to move this tab to.',
-            promptPlaceholder: 'https://…'
+            promptPlaceholder: 'https://…',
+            wizard: 'DeepSeek Harness setup'
         }
     },
     dshMissing: {
@@ -90,11 +91,11 @@ export default {
         node: {
             notFound: 'No system Node detected',
             pick: 'Choose the Node runtime that runs dsh / npm',
-            runtimeSystem: 'Use global system Node (≥ 20)',
+            runtimeSystem: 'Use global system Node (22.19+)',
             runtimeLocal: 'Use a local Node (arch-specific, into the config dir)',
             rtDefault: 'default',
-            need20: 'Node ≥ 20 required',
-            hintSystem: 'Uses the Node on the system PATH. Only enabled when ≥ 20 is detected; disabled when missing or too old.',
+            needVersion: 'Node 22.19+ required',
+            hintSystem: 'Uses the Node on the system PATH. Only enabled for 22.19+ (or 24+, excluding 23); disabled when missing or too old.',
             hintLocal: 'Downloads the Node LTS archive for the current OS/arch and extracts it into the config directory; reusable offline, no system dependency. Pick a version that is not installed yet and click Next to start.',
             deploying: 'Downloading & deploying Node LTS…',
             systemNote: 'Will run the DeepSeek Harness and npm with system Node {ver}.',
@@ -150,7 +151,7 @@ export default {
     },
     sv: {
         cap: 'Settings',
-        nav: { general: 'General', appearance: 'Appearance', env: 'Environment', dsh: 'DeepSeek', log: 'Terminal', download: 'Downloads', extensions: 'Extensions', hotkeys: 'Shortcuts', about: 'About' },
+        nav: { general: 'General', appearance: 'Appearance', env: 'Environment', dsh: 'DeepSeek', log: 'Terminal', download: 'Downloads', hotkeys: 'Shortcuts', about: 'About' },
         intro: {
             general: 'Working directory, port, startup, performance, network and config folder.',
             appearance: 'Interface language, theme and zoom.',
@@ -158,21 +159,8 @@ export default {
             dsh: 'DeepSeek Harness source, updates, and token providers with balances.',
             log: 'Live DeepSeek Box output (stdout / stderr).',
             download: 'Download task queue and settings: resumable transfers, concurrency, speed limits.',
-            extensions: 'Extensions: system / built-in / external tiers — inspect status, toggle them instantly, manage packages.',
             hotkeys: 'Keyboard shortcuts: system-wide and in-app.',
             about: 'About the app and DeepSeek Harness, plus update checks.'
-        },
-        extpanel: {
-            missing: 'This extension is currently unavailable.',
-            inactive: 'This extension is not running.',
-            info: 'Extension info',
-            kind: 'Kind',
-            version: 'Version',
-            status: 'Status',
-            caps: 'Granted capabilities',
-            dir: 'Location',
-            reveal: 'Open containing folder',
-            tabs: 'Tabs provided by this extension'
         },
         general: {
             run: 'Run',
@@ -385,7 +373,7 @@ export default {
             nodeRuntime: 'Node runtime',
             nodeSystem: 'System',
             nodeLocal: 'Local deploy',
-            nodeRuntimeHint: 'Deploys the latest Node LTS by default; you can also use a system Node (≥ 20). Restart for it to take effect.',
+            nodeRuntimeHint: 'Deploys the latest Node LTS by default; you can also use a system Node (22.19+, excluding 23). Restart for it to take effect.',
             installedVersions: 'Installed versions',
             colVersion: 'Version',
             colStatus: 'Status',
@@ -401,7 +389,7 @@ export default {
             canceling: 'Cancelling…',
             applyTxt: 'After changing the Node runtime, click to restart dsh and apply it.',
             applyBtn: 'Apply now',
-            runtimeUnusable: 'This runtime is unavailable: no usable Node was found (System needs ≥ {major}; Local needs a deployment first). dsh would fail to start.',
+            runtimeUnusable: 'This runtime is unavailable: no usable Node was found (System needs ≥ {version}, excluding 23; Local needs a supported deployment). dsh would fail to start.',
             currentVersion: 'Current',
             latestLts: 'Latest LTS',
             notDetected: 'Not detected',
@@ -424,7 +412,7 @@ export default {
             installVersion: 'Install this version',
             currentSuffix: ' (current)',
             versionListHint: 'The list comes from nodejs.org’s release index (newest first); installing replaces the Node deployed in the config directory.',
-            tooOld: 'This version is below the DeepSeek Harness minimum major version (Node {major}); the DeepSeek Harness will not run on it.',
+            tooOld: 'This version is below the Node version DeepSeek Harness requires ({version}+, excluding 23); the DeepSeek Harness will not run on it.',
             npmSource: 'npm source',
             npmBundled: 'Bundled',
             npmSystem: 'System',
