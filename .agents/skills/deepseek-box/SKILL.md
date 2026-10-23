@@ -5,7 +5,7 @@ license: Apache-2.0
 metadata:
   scope: workspace-only
   project: DeepSeek Box
-  version: "0.2.1"  # 跟随应用版本
+  version: "0.2.1-rc.3"  # 跟随应用版本
 ---
 
 # DeepSeek Box 项目开发技能
